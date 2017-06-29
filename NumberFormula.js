@@ -6,7 +6,7 @@ let parser = peg.generate(pegStr);
 
 //let parser = peg.generate("start = (' '/'a' / 'b')+");
 //console.log(parser.parse('a'));
-console.log(parser.parse('3 * (3 + 4)+( -1 +A)'));
+console.log(parser.parse("''+'"));
 
 function getPegStr() {
   return `
@@ -37,49 +37,53 @@ Term
       }, head);
     }
 
-/*
-SysOperated
-= head:Factor tail:(_ Operator _ SysIndex)* {
-      return tail.reduce(function(result, element) {
-
-        if (element[1] === "*") { return result * element[3]; }
-        if (element[1] === "/") { return result / element[3]; }
-      }, head);
-    }
-/ head:Factor tail:(_ Operator)* {
-      return tail.reduce(function(result, element) {
-        
-        if (element[1] === "*") { return result * element[3]; }
-        if (element[1] === "/") { return result / element[3]; }
-      }, head);
-    }
-/ tail:(_ Operator _ Factor)* {
-      return tail.reduce(function(result, element) {
-        
-        if (element[1] === "*") { return result * element[3]; }
-        if (element[1] === "/") { return result / element[3]; }
-      }, head);
-    }
-
-SysOperator 
-= ['\`$#!]
-*/
-
-SysIndex
-= '{' signed:$(SignedInt) '}'
-{
-  return signed;
-}
-/ SignedInt
-
-
 Factor
 = _ '(' expr:Formula ')' 
 {
   return expr; 
 }
   / UnsignedNumber
+  / SysOperated
   / Sequence
+
+SysOperated
+= head:Sequence tail:(_ SysOperator SysIndex*)+ {
+      return tail.reduce(function(result, element) {
+        // TODO:
+        var arg = element[2][0];
+        if (typeof(arg)==='undefined'){
+          arg = 1;
+        }
+        if (element[1] === "'") { return result - arg; }
+        if (element[1] === "\`") { return result + arg; }
+      }, head);
+    }
+/ tail:(_ SysOperator SysIndex*)+ {
+      return tail.reduce(function(result, element) {
+        // TODO:
+        var arg = element[2][0];
+        if (typeof(arg)==='undefined'){
+          arg = 1;
+        }
+        if (element[1] === "'") { return result - arg; }
+        if (element[1] === "\`") { return result + arg; }
+      }, 0);
+    }
+
+SysOperator 
+= ['\`$#]
+
+
+SysIndex
+= _ '{' signed:$(SignedInt) '}'
+{
+  return parseInt(signed,10);
+}
+/ _ unsinged:_UnsignedInt
+{
+  return parseInt(unsinged,10);
+}
+
 
 Sequence 
 = _ [A-Z]+ _
