@@ -6,7 +6,7 @@ let parser = peg.generate(pegStr);
 
 //let parser = peg.generate("start = (' '/'a' / 'b')+");
 //console.log(parser.parse('a'));
-console.log(parser.parse('-1.2'));
+console.log(parser.parse('-A'));
 
 function getPegStr() {
   return `
@@ -43,7 +43,7 @@ Factor
   / Sequence
 
 Sequence 
-= _ [^+-a-z \\t\\n\\r]+
+= [^\\+\\-a-z \\t\\n\\r]+
 {
   return 100;
 }
