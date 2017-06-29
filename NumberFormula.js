@@ -6,7 +6,7 @@ let parser = peg.generate(pegStr);
 
 //let parser = peg.generate("start = (' '/'a' / 'b')+");
 //console.log(parser.parse('a'));
-console.log(parser.parse('-A'));
+console.log(parser.parse('3 * (3 + 4)+( -1 +A)'));
 
 function getPegStr() {
   return `
@@ -15,55 +15,98 @@ function getPegStr() {
 //
 // Accepts expressions like "2 * (3 + 4)" and computes their value.
 
-NumberFormula
-= head:Term tail:(_ ("+" / "-") _ Term)* {
+Formula
+= head:Term tail:(_ ("+" / "-")  Term)*  {
       return tail.reduce(function(result, element) {
-        if (element[1] === "+") { return result + element[3]; }
-        if (element[1] === "-") { return result - element[3]; }
+        if (element[1] === "+") { return result + element[2]; }
+        if (element[1] === "-") { return result - element[2]; }
       }, head);
     }
-/ tail:(_ ("+" / "-") _ Term)* {
+/ tail:(_ ("+" / "-") Term)* {
       return tail.reduce(function(result, element) {
-        if (element[1] === "+") { return result + element[3]; }
-        if (element[1] === "-") { return result - element[3]; }
+        if (element[1] === "+") { return result + element[2]; }
+        if (element[1] === "-") { return result - element[2]; }
       }, 0);
     }
 
 Term
-= head:Factor tail:(_ ("*" / "/") _ Factor)* {
+= head:Factor tail:(_ ("*" / "/") Factor)* {
       return tail.reduce(function(result, element) {
+        if (element[1] === "*") { return result * element[2]; }
+        if (element[1] === "/") { return result / element[2]; }
+      }, head);
+    }
+
+/*
+SysOperated
+= head:Factor tail:(_ Operator _ SysIndex)* {
+      return tail.reduce(function(result, element) {
+
+        if (element[1] === "*") { return result * element[3]; }
+        if (element[1] === "/") { return result / element[3]; }
+      }, head);
+    }
+/ head:Factor tail:(_ Operator)* {
+      return tail.reduce(function(result, element) {
+        
+        if (element[1] === "*") { return result * element[3]; }
+        if (element[1] === "/") { return result / element[3]; }
+      }, head);
+    }
+/ tail:(_ Operator _ Factor)* {
+      return tail.reduce(function(result, element) {
+        
         if (element[1] === "*") { return result * element[3]; }
         if (element[1] === "/") { return result / element[3]; }
       }, head);
     }
 
+SysOperator 
+= ['\`$#!]
+*/
+
+SysIndex
+= '{' signed:$(SignedInt) '}'
+{
+  return signed;
+}
+/ SignedInt
+
+
 Factor
-= "(" _ expr:NumberFormula _ ")" { return expr; }
+= _ '(' expr:Formula ')' 
+{
+  return expr; 
+}
   / UnsignedNumber
   / Sequence
 
 Sequence 
-= [^\\+\\-a-z \\t\\n\\r]+
+= _ [A-Z]+ _
 {
+  // TODO: seq
   return 100;
 }
 
 UnsignedNumber
-= $( UnsignedFloat / UnsignedInt)
+= _ $( _UnsignedFloat / _UnsignedInt) _
 {
   return parseFloat(text());
 }
 
-UnsignedFloat
-= UnsignedInt '.' [0-9]*
+_UnsignedFloat
+= _UnsignedInt '.' [0-9]*
 / '.' [0-9]+
 
+SignedInt
+= _ [\\+\\-] _UnsignedInt _
+/ _UnsignedInt
 
-UnsignedInt
+_UnsignedInt
 = '0'
 / [1-9] [0-9]*
 
-_ "wsp"
-  = [ \\t\\n\\r]*
+_
+= [ \\t\\n\\r]*
 `;
 }
