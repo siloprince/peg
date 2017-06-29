@@ -6,7 +6,7 @@ let parser = peg.generate(pegStr);
 
 //let parser = peg.generate("start = (' '/'a' / 'b')+");
 //console.log(parser.parse('a'));
-console.log(parser.parse("''+'"));
+console.log(parser.parse("A$"));
 
 function getPegStr() {
   return `
@@ -14,7 +14,33 @@ function getPegStr() {
 // ==========================
 //
 // Accepts expressions like "2 * (3 + 4)" and computes their value.
-
+{
+  function now() {
+    return 0;
+  }
+  function self(){
+    return {
+      inits: [-3,-2,-1,0],
+      values: [1,2,3,4,5,6,7]
+    };
+  }
+  function val(obj,idx) {
+    if (typeof(idx)==='undefined'){
+      return obj.values[now()];
+    }
+    if (idx>=0) {
+      return obj.values[idx];
+    } else {
+      return obj.inits[obj.inits.length+idx];
+    }
+  }
+  function len(obj) {
+    return obj.values.length;
+  }
+  function ini(obj,idx) {
+    return obj.inits[obj.inits.length-idx-1];
+  }
+}
 Formula
 = head:Term tail:(_ ("+" / "-")  Term)*  {
       return tail.reduce(function(result, element) {
@@ -43,11 +69,14 @@ Factor
   return expr; 
 }
   / UnsignedNumber
+  / SysOperated2
   / SysOperated
-  / Sequence
+  / seq:Sequence {
+    return val(seq)
+  }
 
 SysOperated
-= head:Sequence tail:(_ SysOperator SysIndex*)+ {
+= seq:Sequence tail:(_ SysOperator SysIndex*)+ {
       return tail.reduce(function(result, element) {
         // TODO:
         var arg = element[2][0];
@@ -56,7 +85,7 @@ SysOperated
         }
         if (element[1] === "'") { return result - arg; }
         if (element[1] === "\`") { return result + arg; }
-      }, head);
+      }, val(seq));
     }
 / tail:(_ SysOperator SysIndex*)+ {
       return tail.reduce(function(result, element) {
@@ -67,11 +96,45 @@ SysOperated
         }
         if (element[1] === "'") { return result - arg; }
         if (element[1] === "\`") { return result + arg; }
-      }, 0);
+      }, val(self()));
     }
 
 SysOperator 
-= ['\`$#]
+= ['\`]
+
+
+SysOperated2
+= seq:Sequence _ op:SysOperator2 idx:SysIndex* {
+      var arg = idx[0];
+      if (op === '#') {
+        if (typeof(arg)==='undefined') {
+          return seq.values.length;
+        }
+        return val(seq,arg);
+      } else {
+        if (typeof(arg)==='undefined') {
+          return seq.inits.length;
+        }
+        return ini(seq,arg);
+      }
+    }
+/ _ op:SysOperator2 idx:SysIndex* {
+      var seq = self();
+      if (op === '#') {
+        if (typeof(arg)==='undefined') {
+          return seq.values.length;
+        }
+        return val(seq,arg);
+      } else {
+        if (typeof(arg)==='undefined') {
+          return seq.inits.length;
+        }
+        return ini(seq,arg);
+      }
+    }
+
+SysOperator2
+= [$#]
 
 
 SysIndex
@@ -89,7 +152,7 @@ Sequence
 = _ [A-Z]+ _
 {
   // TODO: seq
-  return 100;
+  return self();
 }
 
 UnsignedNumber
