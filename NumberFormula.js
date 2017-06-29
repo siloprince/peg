@@ -33,21 +33,21 @@ Term
 
 Factor
 = "(" _ expr:NumberFormula _ ")" { return expr; }
-  / Number
+  / UnsignedNumber
 
-Number
-= $(Int / Float)
+UnsignedNumber
+= $(UnsignedInt / UnsignedFloat)
 {
   return parseFloat(text());
 }
 
-Float
-= Int '.' Digit*
+UnsignedFloat
+= UnsignedInt '.' Digit*
 / '.' Digit+
 / Signed '.' Digit+
 
 
-Int
+UnsignedInt
 = Zero
 / NonZeroInt
 
