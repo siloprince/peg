@@ -1,141 +1,161 @@
 'use strict';
+(function (console, peg) {
+  let config = {
+    func: function () {
+      function now() {
+        return 0;
+      }
+      function getCidx(obj, _cidx) {
+        var cidx = 0;
+        if (typeof (_cidx) === 'undefined') {
+          cidx = (_cidx + obj.length * 10) % obj.length;
+        }
+        return cidx;
+      }
+      function self(_cidx) {
+        var ret = [
+          {
+            inits: [-3, -2, -1, 0],
+            values: [1, 2, 3, 4, 5, 6, 7]
+          },
+          {
+            inits: [-6, -4, -2, 0],
+            values: [2, 4, 6, 8, 10, 12, 14]
+          }
+        ];
+        if (typeof (_cidx) === 'undefined') {
+          return ret;
+        }
+        var cidx = getCidx(ret, _cidx);
+        return ret[cidx];
+      }
+      function val(obj, _cidx, ridx) {
+        var cidx = getCidx(obj, _cidx);
+        if (typeof (ridx) === 'undefined') {
+          return obj[cidx].values[now()];
+        }
+        if (ridx >= 0) {
+          return obj[cidx].values[ridx];
+        } else {
+          return obj[cidx].inits[obj[cidx].inits.length + ridx];
+        }
+      }
+      function vallen(obj) {
+        return obj[0].values.length;
+      }
+      function inilen(obj) {
+        return obj[0].inits.length;
+      }
+      function ini(obj, _cidx, ridx) {
+        var cidx = getCidx(obj, _cidx);
+        return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
+      }
+      function processAddSub(head, tail) {
+        return tail.reduce(function (result, element) {
+          if (element[1] === '+') { return result + element[2]; }
+          if (element[1] === '-') { return result - element[2]; }
+        }, head);
+      }
+      function processMulDiv(head, tail) {
+        return tail.reduce(function (result, element) {
+          if (element[1] === '*') { return result * element[2]; }
+          if (element[1] === '/') { return result / element[2]; }
+        }, head);
+      }
+      function processDash(seq, tail) {
+        return tail.reduce(function (result, element) {
+          var op = element[1];
+          var arg = element[2][0];
+          if (typeof (arg) === 'undefined') {
+            arg = 1;
+          }
+          let d_ridx = 0;
+          let d_cidx = 0;
+          if (op.charCodeAt() === 39) { 
+            d_ridx = -1*arg;
+            d_cidx = 0*arg;
+          } else if (op.charCodeAt() === 96) { 
+            d_ridx = -1*arg;
+            d_cidx = -1*arg;
+           }
+          return [result[0] + arg, result[1] +arg];
+        }, [0, 0]);
+      }
+      function processHashDoller(seq, idx, op) {
+        var arg = idx[0];
+        if (op === '#') {
+          if (typeof (arg) === 'undefined') {
+            return vallen(seq);
+          }
+          return val(seq, 0, arg);
+        } else {
+          if (typeof (arg) === 'undefined') {
+            return inilen(seq);
+          }
+          return ini(seq, 0, arg);
+        }
+      }
+    }
+  };
+  let funcStr = JSON.stringify(config.func, replacer);
+  funcStr = funcStr.replace(/^"function \(\) {\\n/,'').replace(/}"$/,'').replace(/\\n/g,'\n');
+  //console.log(funcStr);
+  let pegStr = getPegStr(funcStr);
+  console.log(pegStr);
+  let parser = peg.generate(pegStr);
 
-let pegStr = getPegStr();
-console.log(pegStr);
-let parser = peg.generate(pegStr);
+  //let parser = peg.generate("start = (' '/'a' / 'b')+");
+  //console.log(parser.parse('a'));
+  console.log(parser.parse("A`"));
+  function replacer(k, v) {
+    if (typeof v === "function") { return v.toString() };
+    return v;
+  }
+  function getPegStr(funcStr) {
+    let signed = '\\+\\-';
+    let wsp = ' \\t\\n\\r';
+    let dash = `"'"`;
+    let backdash = "'`'";
+    return `
 
-//let parser = peg.generate("start = (' '/'a' / 'b')+");
-//console.log(parser.parse('a'));
-console.log(parser.parse("A$"));
-
-function getPegStr() {
-  return `
 // Simple Arithmetics Grammar
 // ==========================
 //
 // Accepts expressions like "2 * (3 + 4)" and computes their value.
 {
-  function now() {
-    return 0;
-  }
-  function self(){
-    return {
-      inits: [-3,-2,-1,0],
-      values: [1,2,3,4,5,6,7]
-    };
-  }
-  function val(obj,idx) {
-    if (typeof(idx)==='undefined'){
-      return obj.values[now()];
-    }
-    if (idx>=0) {
-      return obj.values[idx];
-    } else {
-      return obj.inits[obj.inits.length+idx];
-    }
-  }
-  function len(obj) {
-    return obj.values.length;
-  }
-  function ini(obj,idx) {
-    return obj.inits[obj.inits.length-idx-1];
-  }
+${funcStr}
 }
 Formula
-= head:Term tail:(_ ("+" / "-")  Term)*  {
-      return tail.reduce(function(result, element) {
-        if (element[1] === "+") { return result + element[2]; }
-        if (element[1] === "-") { return result - element[2]; }
-      }, head);
-    }
-/ tail:(_ ("+" / "-") Term)* {
-      return tail.reduce(function(result, element) {
-        if (element[1] === "+") { return result + element[2]; }
-        if (element[1] === "-") { return result - element[2]; }
-      }, 0);
-    }
+= head:Term tail:(_ ('+' / '-')  Term)*  { return processAddSub(head, tail); }
+/ tail:(_ ('+' / '-') Term)* { return processAddSub(0, tail); }
 
 Term
-= head:Factor tail:(_ ("*" / "/") Factor)* {
-      return tail.reduce(function(result, element) {
-        if (element[1] === "*") { return result * element[2]; }
-        if (element[1] === "/") { return result / element[2]; }
-      }, head);
-    }
+= head:Factor tail:(_ ('*' / '/') Factor)* { return processMulDiv(head, tail); }
 
 Factor
-= _ '(' expr:Formula ')' 
-{
-  return expr; 
-}
+= _ '(' expr:Formula ')' { return expr; }
   / UnsignedNumber
-  / SysOperated2
-  / SysOperated
-  / seq:Sequence {
-    return val(seq)
-  }
+  / SysOperatedDoller
+  / SysOperatedHash
+  / SysOperatedBackdash
+  / SysOperatedDash
+  / seq:Sequence { return val(seq,0,now()); }
 
-SysOperated
-= seq:Sequence tail:(_ SysOperator SysIndex*)+ {
-      return tail.reduce(function(result, element) {
-        // TODO:
-        var arg = element[2][0];
-        if (typeof(arg)==='undefined'){
-          arg = 1;
-        }
-        if (element[1] === "'") { return result - arg; }
-        if (element[1] === "\`") { return result + arg; }
-      }, val(seq));
-    }
-/ tail:(_ SysOperator SysIndex*)+ {
-      return tail.reduce(function(result, element) {
-        // TODO:
-        var arg = element[2][0];
-        if (typeof(arg)==='undefined'){
-          arg = 1;
-        }
-        if (element[1] === "'") { return result - arg; }
-        if (element[1] === "\`") { return result + arg; }
-      }, val(self()));
-    }
+SysOperatedBackdash
+= seq:Sequence tail:(_ ${backdash} SysIndex*)+ { return processDash (seq,tail); }
+/ tail:(_ ${backdash} SysIndex*)+ { return processDash (self(),tail);}
 
-SysOperator 
-= ['\`]
+SysOperatedDash
+= seq:Sequence tail:(_ ${dash} SysIndex*)+ { return processDash (seq,tail); }
+/ tail:(_ ${dash}  SysIndex*)+ { return processDash (self(),tail);}
 
+SysOperatedDoller
+= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
 
-SysOperated2
-= seq:Sequence _ op:SysOperator2 idx:SysIndex* {
-      var arg = idx[0];
-      if (op === '#') {
-        if (typeof(arg)==='undefined') {
-          return seq.values.length;
-        }
-        return val(seq,arg);
-      } else {
-        if (typeof(arg)==='undefined') {
-          return seq.inits.length;
-        }
-        return ini(seq,arg);
-      }
-    }
-/ _ op:SysOperator2 idx:SysIndex* {
-      var seq = self();
-      if (op === '#') {
-        if (typeof(arg)==='undefined') {
-          return seq.values.length;
-        }
-        return val(seq,arg);
-      } else {
-        if (typeof(arg)==='undefined') {
-          return seq.inits.length;
-        }
-        return ini(seq,arg);
-      }
-    }
-
-SysOperator2
-= [$#]
-
+SysOperatedHash
+= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
 
 SysIndex
 = _ '{' signed:$(SignedInt) '}'
@@ -149,11 +169,7 @@ SysIndex
 
 
 Sequence 
-= _ [A-Z]+ _
-{
-  // TODO: seq
-  return self();
-}
+= _ [A-Z]+ _ { return self();}
 
 UnsignedNumber
 = _ $( _UnsignedFloat / _UnsignedInt) _
@@ -166,7 +182,7 @@ _UnsignedFloat
 / '.' [0-9]+
 
 SignedInt
-= _ [\\+\\-] _UnsignedInt _
+= _ [${signed}] _UnsignedInt _
 / _UnsignedInt
 
 _UnsignedInt
@@ -174,6 +190,12 @@ _UnsignedInt
 / [1-9] [0-9]*
 
 _
-= [ \\t\\n\\r]*
+= [${wsp}]*
+  
 `;
-}
+  }
+})(console,
+  typeof (peg) === 'undefined'
+    ? { generate: function () { return { parse: function () { } } } }
+    : peg
+  );
