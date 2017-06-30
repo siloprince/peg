@@ -62,6 +62,12 @@
           if (element[1] === '/') { return result / element[2]; }
         }, head);
       }
+      function processFunc(head, tail) {
+        return tail.reduce(function (result, element) {
+          let func = element[1].join('');
+          if (func === 'mod') { return result % element[2]; }
+        }, head);
+      }
       function processDash(seq, tail) {
         let result = tail.reduce(function (result, element) {
           var op = element[1];
@@ -108,9 +114,8 @@
   console.log(pegStr);
   let parser = peg.generate(pegStr);
 
-  //let parser = peg.generate("start = (' '/'a' / 'b')+");
-  //console.log(parser.parse('a'));
-  console.log(parser.parse("A``'"));
+  console.log(parser.parse('10 mod 4'));
+  //console.log(parser.parse("A``'"));
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
     return v;
@@ -134,7 +139,13 @@ Formula
 / tail:(_ ('+' / '-') Term)* { return processAddSub(0, tail); }
 
 Term
-= head:Factor tail:(_ ('*' / '/') Factor)* { return processMulDiv(head, tail); }
+= head:FuncFactor tail:(_ ('*' / '/') FuncFactor )* { return processMulDiv(head, tail); }
+
+FuncFactor
+= head:Factor tail:(_ [a-z]+ Factor)* { return processFunc(head, tail); }
+/*
+/ tail:(_ [a-z]+ (_ '['  ']')* { return processMulDiv(head, tail); }
+*/
 
 Factor
 = _ '(' expr:Formula ')' { return expr; }
