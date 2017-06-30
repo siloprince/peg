@@ -69,21 +69,21 @@
           if (typeof (arg) === 'undefined') {
             arg = 1;
           }
-          if (op.charCodeAt() === 39) { 
-            
+          if (op.charCodeAt() === 39) {
+
             result.dash++;
-          } else if (op.charCodeAt() === 96) { 
+          } else if (op.charCodeAt() === 96) {
             result.backdash++;
-           }
+          }
           return result;
-        }, {dash:0, backdash:0});
+        }, { dash: 0, backdash: 0 });
         let hasBackdash = 0;
-        if (result.backdash!==0) {
+        if (result.backdash !== 0) {
           hasBackdash = 1;
         }
         let cidx = -(result.backdash);
         let ridx = -(result.dash + hasBackdash);
-        return val(seq,cidx,ridx);
+        return val(seq, cidx, ridx);
       }
       function processHashDoller(seq, idx, op) {
         var arg = idx[0];
@@ -102,7 +102,7 @@
     }
   };
   let funcStr = JSON.stringify(config.func, replacer);
-  funcStr = funcStr.replace(/^"function \(\) {\\n/,'').replace(/}"$/,'').replace(/\\n/g,'\n');
+  funcStr = funcStr.replace(/^"function \(\) {\\n/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
   //console.log(funcStr);
   let pegStr = getPegStr(funcStr);
   console.log(pegStr);
@@ -112,7 +112,7 @@
   //console.log(parser.parse('a'));
   console.log(parser.parse("A'''"));
   function replacer(k, v) {
-    if (typeof v === "function") { return v.toString() };
+    if (typeof v === 'function') { return v.toString(); };
     return v;
   }
   function getPegStr(funcStr) {
