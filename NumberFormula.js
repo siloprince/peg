@@ -110,7 +110,7 @@
 
   //let parser = peg.generate("start = (' '/'a' / 'b')+");
   //console.log(parser.parse('a'));
-  console.log(parser.parse("A'''"));
+  console.log(parser.parse("A``'"));
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
     return v;
@@ -141,17 +141,12 @@ Factor
   / UnsignedNumber
   / SysOperatedDoller
   / SysOperatedHash
-  / SysOperatedBackdash
   / SysOperatedDash
   / seq:Sequence { return val(seq,0,now()); }
 
-SysOperatedBackdash
-= seq:Sequence tail:(_ ${backdash} SysIndex*)+ { return processDash (seq,tail); }
-/ tail:(_ ${backdash} SysIndex*)+ { return processDash (self(),tail);}
-
 SysOperatedDash
-= seq:Sequence tail:(_ ${dash} SysIndex*)+ { return processDash (seq,tail); }
-/ tail:(_ ${dash}  SysIndex*)+ { return processDash (self(),tail);}
+= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
+/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
 
 SysOperatedDoller
 = seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
