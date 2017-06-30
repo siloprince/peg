@@ -63,23 +63,27 @@
         }, head);
       }
       function processDash(seq, tail) {
-        return tail.reduce(function (result, element) {
+        let result = tail.reduce(function (result, element) {
           var op = element[1];
           var arg = element[2][0];
           if (typeof (arg) === 'undefined') {
             arg = 1;
           }
-          let d_ridx = 0;
-          let d_cidx = 0;
           if (op.charCodeAt() === 39) { 
-            d_ridx = -1*arg;
-            d_cidx = 0*arg;
+            
+            result.dash++;
           } else if (op.charCodeAt() === 96) { 
-            d_ridx = -1*arg;
-            d_cidx = -1*arg;
+            result.backdash++;
            }
-          return [result[0] + arg, result[1] +arg];
-        }, [0, 0]);
+          return result;
+        }, {dash:0, backdash:0});
+        let hasBackdash = 0;
+        if (result.backdash!==0) {
+          hasBackdash = 1;
+        }
+        let cidx = -(result.backdash);
+        let ridx = -(result.dash + hasBackdash);
+        return val(seq,cidx,ridx);
       }
       function processHashDoller(seq, idx, op) {
         var arg = idx[0];
@@ -106,7 +110,7 @@
 
   //let parser = peg.generate("start = (' '/'a' / 'b')+");
   //console.log(parser.parse('a'));
-  console.log(parser.parse("A`"));
+  console.log(parser.parse("A'''"));
   function replacer(k, v) {
     if (typeof v === "function") { return v.toString() };
     return v;
