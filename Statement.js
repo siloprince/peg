@@ -158,11 +158,21 @@
           return ret;
         }
       }
-      function processStatement(seq, formula, argvs) {
+      function processStatement(seq, formula, argvs, text) {
         let decl = seq[0].name;
         param.rentaku.decls.push(decl);
+        console.log(text);
+        if ( /(^[^@]+)@([^\[]+)/.test(text) ) {
+          let rule = RegExp.$2;
+          let args = RegExp.$3;
+          param.rentaku.decls.push(rule);
+          let _args = (args.trim()+'[').split('][');
+          param.rentaku.argvs.push(_args);
+        } else {
+          throw 'format error';
+        }
+        
         param.depend[decl] = {};
-
         let depend = [];
         depend = depend.concat(formula);
         for (let ai = 0; ai < argvs.length; ai++) {
@@ -171,6 +181,9 @@
         let dep = param.depend[decl];
         for (let di = 0; di < depend.length; di++) {
           let name = depend[di].name;
+          if (!(name in depend[di])) {
+            continue;
+          }
           if (name !== decl) {
             if (!(name in param.depend[decl])) {
               param.depend[decl][name] = 0;
@@ -297,7 +310,7 @@ Statements
 Statement
 = _ seq:Sequence _ '@' _ formula:Formula  ( _ '|' Condition )* _ argvs:('[' Formula ']' _ )*
 {
-  processStatement(seq,formula,argvs);
+  processStatement(seq,formula,argvs,text());
 }
 
 Condition
@@ -309,7 +322,9 @@ Condition
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
-  return processTail(head, tail);
+  let ret = processTail(head, tail);
+  ret.push({text:text()});
+  return ret;
 }
 / tail:(_ ('+' / '-') FuncTerm)* 
 {
@@ -412,7 +427,7 @@ Sequence
 = _ seq:[A-Z]+ _ { 
   return [{
     type: 'sequence',
-    name: seq.join('')
+    name: seq.join(''),
   }];
 }
 
