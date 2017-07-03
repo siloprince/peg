@@ -159,16 +159,17 @@
 ${funcStr}
 }
 Formula
-= head:Term tail:(_ ('+' / '-')  Term)*  { return processAddSub(head, tail); }
-/ tail:(_ ('+' / '-') Term)* { return processAddSub(0, tail); }
+= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
+/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
+
+
+FuncTerm
+= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
+/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
+/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
 
 Term
-= head:FuncFactor tail:(_ ('*' / '/') FuncFactor )* { return processMulDiv(head, tail); }
-
-FuncFactor
-= head:Factor tail:(_ [a-z]+ Factor)* { return processFunc(head, tail); }
-/ tail:_ op:[a-z]+ _ args:Factor { return processFuncEx(op.join(''), null, args); }
-/ tail:_ op:[a-z]+ args:(_ '[' Factor ']')* { return processFuncEx(op.join(''), 2, args); }
+= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
 
 Factor
 = _ '(' expr:Formula ')' { return expr; }
