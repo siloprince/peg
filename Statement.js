@@ -145,7 +145,19 @@
           return ini(seq, 0, arg);
         }
       }
-
+      function processTail(head, tail) {
+        let ret = [];
+        for (let ti = 0; ti < tail.length; ti++) {
+          if (tail[ti][2][0]) {
+            ret.push(tail[ti][2][0]);
+          }
+        }
+        if (head !== null) {
+          return head.concat(ret);
+        } else {
+          return ret;
+        }
+      }
       function processStatement(seq, formula, argvs) {
         let decl = seq[0].name;
         param.rentaku.decls.push(decl);
@@ -175,6 +187,9 @@
         let starts = {};
         let checked = {};
         setStart(param.rentaku.decls, starts, checked);
+
+        console.log(starts);
+        return;
         function setStart(decls, starts, checked) {
           // clear
           for (let di = 0; di < decls.length; di++) {
@@ -250,8 +265,8 @@
   */
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
-  console.log(statementParser.parse(`A @ A' + 1 
-  +2 
+  console.log(statementParser.parse(`A @ B# + 1 
+  +2 | A=B
   [1][B]
   B @ 1` + '\n'));
 
@@ -280,45 +295,31 @@ Statements
 }
 
 Statement
-= _ seq:Sequence _ '@' _ formula:Formula _ argvs:('[' Formula ']' _ )*
+= _ seq:Sequence _ '@' _ formula:Formula  ( _ '|' Condition )* _ argvs:('[' Formula ']' _ )*
 {
   processStatement(seq,formula,argvs);
 }
 
+Condition
+= head:FuncCondTerm tail:(('and' / 'or') FuncCondTerm)*
+{
+  return processTail(head, tail);
+}
 
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
-  let ret=[];
-  for (let ti=0;ti<tail.length;ti++) {
-    if (tail[ti][2][0]) {
-      ret.push(tail[ti][2][0]);
-    }
-  }
-  return head.concat(ret);
+  return processTail(head, tail);
 }
 / tail:(_ ('+' / '-') FuncTerm)* 
 {
-  let ret=[];
-  for (let ti=0;ti<tail.length;ti++) {
-    if (tail[ti][2][0]) {
-      ret.push(tail[ti][2][0]);
-    }
-  }
-  return ret; 
+  return processTail(null, tail);
 }
 
-
-FuncTerm
-= head:Term tail:(_ [a-z]+ Term)* 
+FuncCondTerm
+= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / [a-z]+ ) Term)* 
 {
-  let ret=[];
-  for (let ti=0;ti<tail.length;ti++) {
-    if (tail[ti][2][0]) {
-      ret.push(tail[ti][2][0]);
-    }
-  }
-  return head.concat(ret);
+  return processTail(head, tail);
 }
 / _ op:[a-z]+ _ args:Term 
 {
@@ -326,25 +327,26 @@ FuncTerm
 }
 / _ op:[a-z]+ tail:(_ '[' Term ']')* 
 {
-  let ret=[];
-  for (let ti=0;ti<tail.length;ti++) {
-    if (tail[ti][2][0]) {
-      ret.push(tail[ti][2][0]);
-    }
-  }
-  return ret;
+  return processTail(null, tail);
 }
 
+FuncTerm
+= head:Term tail:(_ [a-z]+ Term)* 
+{
+  return processTail(head, tail);
+}
+/ _ op:[a-z]+ _ args:Term 
+{
+  return args; 
+}
+/ _ op:[a-z]+ tail:(_ '[' Term ']')* 
+{
+  return processTail(null, tail);
+}
 Term
 = head:Factor tail:(_ ('*' / '/') Factor )* 
 {
-  let ret=[];
-  for (let ti=0;ti<tail.length;ti++) {
-    if (tail[ti][2][0]) {
-      ret.push(tail[ti][2][0]);
-    }
-  }
-  return head.concat(ret);
+  return processTail(head, tail);
 }
 
 Factor
