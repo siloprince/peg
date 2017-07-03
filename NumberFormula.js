@@ -135,10 +135,10 @@
   console.log(pegStr);
   let parser = peg.generate(pegStr);
 
-  console.log(parser.parse('10 mod 4'));
-  console.log(parser.parse('mod [10][4]'));
-  console.log(parser.parse('not 4'));
-  console.log(parser.parse('not [10]'));
+  console.log(parser.parse('A @ 10 mod 4'));
+  console.log(parser.parse('A @ mod [10][4]'));
+  console.log(parser.parse('A @ not 4'));
+  console.log(parser.parse('A @ not [10]'));
   //console.log(parser.parse("A``'"));
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
@@ -158,6 +158,13 @@
 {
 ${funcStr}
 }
+
+Statement
+= seq:SeqName _ '@' formula:Formula
+
+SeqName
+= _ seq:[A-Z]+ _ { return seq.join(''); }
+
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
 / tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
@@ -192,7 +199,7 @@ SysOperatedHash
 / _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
 
 SysIndex
-= _ '{' signed:$(SignedInt) '}'
+= _ '{' signed:SignedInt '}'
 {
   return parseInt(signed,10);
 }
@@ -200,7 +207,6 @@ SysIndex
 {
   return parseInt(unsinged,10);
 }
-
 
 Sequence 
 = _ [A-Z]+ _ { return self();}
