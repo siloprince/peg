@@ -68,6 +68,27 @@
           if (func === 'mod') { return result % element[2]; }
         }, head);
       }
+      function processFuncEx(func, aidx, _args) {
+          let args = [];
+          if (aidx===null) {
+            args.push(_args);
+          } else {
+            for (let ai=0;ai<_args.length;ai++) {
+              args.push(_args[ai][aidx]);
+            }
+          }
+          if (func === 'mod' && args.length===2) { 
+            return  args[0] % args[1];
+          }  else if (func === 'not' && args.length===1) { 
+            if (! args[0]) {
+              return 1;
+            } else {
+              return 0;
+            }
+          }  else {
+            return 0;
+          }
+      }
       function processDash(seq, tail) {
         let result = tail.reduce(function (result, element) {
           var op = element[1];
@@ -115,6 +136,9 @@
   let parser = peg.generate(pegStr);
 
   console.log(parser.parse('10 mod 4'));
+  console.log(parser.parse('mod [10][4]'));
+  console.log(parser.parse('not 4'));
+  console.log(parser.parse('not [10]'));
   //console.log(parser.parse("A``'"));
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
@@ -143,9 +167,8 @@ Term
 
 FuncFactor
 = head:Factor tail:(_ [a-z]+ Factor)* { return processFunc(head, tail); }
-/*
-/ tail:(_ [a-z]+ (_ '['  ']')* { return processMulDiv(head, tail); }
-*/
+/ tail:_ op:[a-z]+ _ args:Factor { return processFuncEx(op.join(''), null, args); }
+/ tail:_ op:[a-z]+ args:(_ '[' Factor ']')* { return processFuncEx(op.join(''), 2, args); }
 
 Factor
 = _ '(' expr:Formula ')' { return expr; }
