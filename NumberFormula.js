@@ -160,7 +160,9 @@ ${funcStr}
 }
 
 Statement
-= seq:SeqName _ '@' formula:Formula
+= seq:SeqName _ '@' formula:Formula {
+  return text() +' : '+ formula;
+}
 
 SeqName
 = _ seq:[A-Z]+ _ { return seq.join(''); }
@@ -172,8 +174,8 @@ Formula
 
 FuncTerm
 = head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
-/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
-/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
+/ _ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
+/ _ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
 
 Term
 = head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
