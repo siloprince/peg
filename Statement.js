@@ -21,6 +21,7 @@
         },
         depend: {},
       }
+      return test;
       function now() {
         return 0;
       }
@@ -194,7 +195,9 @@
         setStart(param.rentaku.decls, starts, checked);
         console.log(starts);
         return;
-        function setStart(decls, starts, checked) {
+        
+      }
+      function setStart(decls, depend, starts, checked) {
           // clear
           for (let di = 0; di < decls.length; di++) {
             let decl = decls[di];
@@ -207,7 +210,7 @@
           }
           for (let di = 0; di < decls.length; di++) {
             let decl = decls[di];
-            if (!(decl in param.depend)) {
+            if (!(decl in depend)) {
               starts[decl] = 0;
             }
           }
@@ -215,7 +218,7 @@
           for (let di = 0; di < decls.length; di++) {
             let outs = [];
             let decl = decls[di];
-            setStartRepeat(0, decls.length, [decl], starts, [0], outs);
+            setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
             let maxout = 0;
             for (let oi = 0; oi < outs.length; oi++) {
               maxout = Math.max(maxout, outs[oi]);
@@ -227,7 +230,7 @@
           }
           return;
 
-          function setStartRepeat(depth, maxdepth, decls, starts, ins, outs) {
+          function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
             if (decls.length === 0) {
               return;
             }
@@ -238,21 +241,32 @@
               let nextins = [];
               let decl = decls[di];
               let array = [];
-              for (let dk in param.depend[decl]) {
+              for (let dk in depend[decl]) {
                 if (dk in starts) {
-                  outs.push(ins[di] + param.depend[decl][dk]);
+                  outs.push(ins[di] + depend[decl][dk]);
                 } else {
                   array.push(dk);
-                  nextins.push(ins[di] + param.depend[decl][dk]);
+                  nextins.push(ins[di] + depend[decl][dk]);
                 }
               }
-              setStartRepeat(depth + 1, maxdepth, array, starts, nextins, outs);
+              setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
             }
           }
         }
-      }
+        function test() {
+          let decls = ['A','B'];
+          let depend = {
+            A: {},
+            B: {A:10}
+          };
+          let starts = {};
+          let checked = {};
+          setStart(decls, depend, starts, checked);
+          console.log(starts);
+        }
     }
   };
+  (config.func())();
   let funcStr = JSON.stringify(config.func, replacer);
   funcStr = funcStr.replace(/^"function \(\) {\\n/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
   //console.log(funcStr);
