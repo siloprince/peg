@@ -1,10 +1,10 @@
 'use strict';
 (function (console, peg) {
-  let config = {
+  let global = {
     func: function () {
       return test;
 
-      let param = {
+      let config = {
         limit: {
           count: 0,
           values: 10000,
@@ -162,8 +162,8 @@
       }
       function processStatement(seq, formulaDep, condDep, argvsDep, text) {
         let decl = seq[0].name;
-        param.rentaku.decls.push(decl);
-        param.rentaku.rules.push(text);
+        config.rentaku.decls.push(decl);
+        config.rentaku.rules.push(text);
 
         console.log(text);
         
@@ -177,16 +177,16 @@
           }
           let name = depend[di].name;
           if (name !== decl) {
-            if (!(decl in param.depend)) {
-              param.depend[decl] = {};
+            if (!(decl in config.depend)) {
+              config.depend[decl] = {};
             }
-            if (!(name in param.depend[decl])) {
-              param.depend[decl][name] = 0;
+            if (!(name in config.depend[decl])) {
+              config.depend[decl][name] = 0;
             }
             if (depend[di].type === 'seqend') {
-              param.depend[decl][name] = Math.max(param.depend[decl][name], param.max);
+              config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
             } else {
-              param.depend[decl][name] = Math.max(0, param.depend[decl][name]);
+              config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
             }
           }
         }
@@ -194,7 +194,7 @@
       function processStatements() {
         let starts = {};
         let checked = {};
-        setStart(param.rentaku.decls, param.depend, starts, checked);
+        setStart(config.rentaku.decls, config.depend, starts, checked);
         return;
         
       }
@@ -267,21 +267,21 @@
     }
   };
   // uncomment for test
-  //(config.func())();
+  //(global.func())();
 
-  let funcStr = JSON.stringify(config.func, replacer);
+  let funcStr = JSON.stringify(global.func, replacer);
   funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
   //console.log(funcStr);
 
   let formulaStr = getFormulaStr(funcStr);
   //console.log(formulaStr);
-  config.formulaParser = peg.generate(formulaStr);
+  global.formulaParser = peg.generate(formulaStr);
   /*
-    console.log(config.formulaParser.parse('10 mod 4'));
-    console.log(config.formulaParser.parse('mod [10][4]'));
-    console.log(config.formulaParser.parse('not 4'));
-    console.log(config.formulaParser.parse('not [10]'));
-    //console.log(config.formulaParser.parse("A``'"));
+    console.log(global.formulaParser.parse('10 mod 4'));
+    console.log(global.formulaParser.parse('mod [10][4]'));
+    console.log(global.formulaParser.parse('not 4'));
+    console.log(global.formulaParser.parse('not [10]'));
+    //console.log(global.formulaParser.parse("A``'"));
   */
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
