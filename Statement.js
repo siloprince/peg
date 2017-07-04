@@ -106,7 +106,6 @@ let config = {
             arg = 1;
           }
           if (op.charCodeAt() === 39) {
-
             result.dash++;
           } else if (op.charCodeAt() === 96) {
             result.backdash++;
@@ -118,7 +117,7 @@ let config = {
           hasBackdash = 1;
         }
         let cidx = -(result.backdash);
-        let ridx = -(result.dash + hasBackdash);
+        let ridx = now()-(result.dash + hasBackdash);
         return val(seq, cidx, ridx);
       }
       function processHashDoller(seq, idx, op) {
@@ -401,7 +400,7 @@ let config = {
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
-  console.log(statementParser.parse(`A @ A'+1 | A >= 0 [0]
+  console.log(statementParser.parse(`A @ A'+1 [0]
   B @ A# 
   C @ B#` + '\n'));
 
