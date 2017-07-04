@@ -147,7 +147,7 @@ let config = {
           return ret;
         }
       }
-      function processStatement(seq, formulaDep, condDep, argvsDepArray, formulaStr, condStr, argvsStrArray) {
+      function processStatement(seq, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
         let decl = seq[0].name;
         config.decls.push(decl);
         config.iteraita[decl] = {
@@ -156,12 +156,14 @@ let config = {
           formula: formulaStr,
           condition: condStr,
           argvs: argvsStrArray,
+          argvsCondition: argvsCondStrArray,
           formulaDep: formulaDep,
           conditionDep: condDep,
           argvsDep: argvsDepArray,
+          argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        calcDepend(decl, formulaDep, condDep, argvsDepArray);
+        calcDepend(decl, formulaDep, condDep, argvsDepArray,argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let _decl = '_' + config.serial++;
@@ -172,17 +174,17 @@ let config = {
             inits: [],
             values: [],
             formula: argvsStrArray[ai],
-            condition: [],
+            condition: argvsCondStrArray[ai],
             argvs: [],
             formulaDep: argvsDepArray[ai],
-            conditionDep: null,
+            conditionDep: argvsCondDepArray[ai],
             argvsDep: null,
             sideSequences: [],
           };
-          calcDepend(_decl, argvsDepArray[ai], null, null);
+          calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
         }
         return;
-        function calcDepend(decl, formulaDep, condDep, argvsDepArray) {
+        function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
           let depend = [];
           depend = depend.concat(formulaDep);
           if (condDep) {
@@ -191,6 +193,11 @@ let config = {
           if (argvsDepArray) {
             for (let ai = 0; ai < argvsDepArray.length; ai++) {
               depend = depend.concat(argvsDepArray[ai]);
+            }
+          }
+          if (argvsCondDepArray) {
+            for (let ai = 0; ai < argvsCondDepArray.length; ai++) {
+              depend = depend.concat(argvsCondDepArray[ai]);
             }
           }
           for (let di = 0; di < depend.length; di++) {
@@ -284,8 +291,8 @@ let config = {
                     if (iter.formulaDep && iter.formulaDep.length>0) {
                       varis = varis.concat(iter.formulaDep);
                     }
-                    if (iter.conditionDep && iter.condionDept.length>0) {
-                      varis = varis.concat(iter.condionDep);
+                    if (iter.conditionDep && iter.conditionDep.length>0) {
+                      varis = varis.concat(iter.conditionDep);
                     }
                     if (varis.length>0) {
                       for (let vi = 0; vi < varis.length; vi++) {
@@ -312,10 +319,14 @@ let config = {
         iter.values.push([]);
       }
       function appendRow(iter, cidx) {
-        // TODO: check condition
-        let str = iter.formula;
-        console.log(str);
-        let val = config.formulaParser.parse(str);
+        if (iter.condition.toString().trim().length>0) {
+          let cond = config.formulaParser.parse(iter.condition);
+          if (cond!==1) {
+            iter.values[cidx].push(null);
+            return;
+          } 
+        }
+        let val = config.formulaParser.parse(iter.formula);
         console.log(val);
         iter.values[cidx].push(val);
       }
@@ -400,7 +411,7 @@ let config = {
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
-  console.log(statementParser.parse(`A @ A'+1 [0]
+  console.log(statementParser.parse(`A @ A'+A'' [0][1]
   B @ A# 
   C @ B#` + '\n'));
 
@@ -432,10 +443,10 @@ Statements
 }
 
 Statement
-/*
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
-*/
+/*
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ']' _ )*
+*/
 {
   let _condStr = '';
   let _cond = [];
@@ -444,13 +455,22 @@ Statement
     _cond = cond[2];
   }
   let _argvsStrArray = [];
+  let _argvsCondStrArray = [];
   let _argvsArray = [];
+  let _argvsCondArray = [];
   for (let ai=0;ai<argvs.length;ai++) {
     _argvsStrArray.push(argvs[ai][1].pop().text);
     _argvsArray.push(argvs[ai][1]);
+    if (argvs[ai][2]) {
+      _argvsCondStrArray.push(argvs[ai][2][2].pop().text);
+      _argvsCondArray.push(argvs[ai][2][2]);
+    } else {
+      _argvsCondStrArray.push('');
+      _argvsCondArray.push([]);
+    }
   }
   let _formulaStr = formula.pop().text;
-  processStatement(seq,formula, _cond, _argvsArray, _formulaStr, _condStr,_argvsStrArray);
+  processStatement(seq,formula, _cond, _argvsArray, _argvsCondArray, _formulaStr, _condStr,_argvsStrArray, _argvsCondStrArray);
 }
 
 Condition
