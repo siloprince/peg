@@ -4,175 +4,204 @@ let config = {
     count: 0,
     values: 10000,
   },
+  starts: [],
   constval: 4,
   max: 4,
-  iteraita: {}, // TODO: { A: {vals: [ [0,1,2,3],[0,2,3,4]], inis: [ [0,1,2,3],[0,2,3,4]] }} 
+  iteraita: {}, // TODO: { A: {values: [ [0,1,2,3],[0,2,3,4]], inits: [ [0,1,2,3],[0,2,3,4]] }} 
   instances: {}, // TODO: may be to be deleted
-  rentaku: {
-    decls: [],
-    rules: [],
-    conditions: [],
-    argvs: [],
-    tmp: 0,  // TODO: what?
-    sub: {},  // TODO: what?
-    vari: {},  // TODO: what?
-  },
+  decls: [],
+  serial: 0,
   depend: {},
 };
 
-  (function (console, peg) {
-    let param = {
-      func: function () {
-        return test;
+(function (console, peg) {
+  let param = {
+    func: function () {
+      return test;
 
-        function now() {
-          return 0;
+      function now() {
+        return 0;
+      }
+      function getCidx(obj, _cidx) {
+        var cidx = 0;
+        if (typeof (_cidx) === 'undefined') {
+          cidx = (_cidx + obj.length * 10) % obj.length;
         }
-        function getCidx(obj, _cidx) {
-          var cidx = 0;
-          if (typeof (_cidx) === 'undefined') {
-            cidx = (_cidx + obj.length * 10) % obj.length;
+        return cidx;
+      }
+      function self(_cidx) {
+        var ret = [
+          {
+            inits: [-3, -2, -1, 0],
+            values: [1, 2, 3, 4, 5, 6, 7]
+          },
+          {
+            inits: [-6, -4, -2, 0],
+            values: [2, 4, 6, 8, 10, 12, 14]
           }
-          return cidx;
+        ];
+        if (typeof (_cidx) === 'undefined') {
+          return ret;
         }
-        function self(_cidx) {
-          var ret = [
-            {
-              inits: [-3, -2, -1, 0],
-              values: [1, 2, 3, 4, 5, 6, 7]
-            },
-            {
-              inits: [-6, -4, -2, 0],
-              values: [2, 4, 6, 8, 10, 12, 14]
-            }
-          ];
-          if (typeof (_cidx) === 'undefined') {
-            return ret;
+        var cidx = getCidx(ret, _cidx);
+        return ret[cidx];
+      }
+      function val(obj, _cidx, ridx) {
+        var cidx = getCidx(obj, _cidx);
+        if (typeof (ridx) === 'undefined') {
+          return obj[cidx].values[now()];
+        }
+        if (ridx >= 0) {
+          return obj[cidx].values[ridx];
+        } else {
+          return obj[cidx].inits[obj[cidx].inits.length + ridx];
+        }
+      }
+      function vallen(obj) {
+        return obj[0].values.length;
+      }
+      function inilen(obj) {
+        return obj[0].inits.length;
+      }
+      function ini(obj, _cidx, ridx) {
+        var cidx = getCidx(obj, _cidx);
+        return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
+      }
+      function processAddSub(head, tail) {
+        return tail.reduce(function (result, element) {
+          if (element[1] === '+') { return result + element[2]; }
+          if (element[1] === '-') { return result - element[2]; }
+        }, head);
+      }
+      function processMulDiv(head, tail) {
+        return tail.reduce(function (result, element) {
+          if (element[1] === '*') { return result * element[2]; }
+          if (element[1] === '/') { return result / element[2]; }
+        }, head);
+      }
+      function processFunc(head, tail) {
+        return tail.reduce(function (result, element) {
+          let func = element[1].join('');
+          if (func === 'mod') { return result % element[2]; }
+        }, head);
+      }
+      function processFuncEx(func, aidx, _args) {
+        let args = [];
+        if (aidx === null) {
+          args.push(_args);
+        } else {
+          for (let ai = 0; ai < _args.length; ai++) {
+            args.push(_args[ai][aidx]);
           }
-          var cidx = getCidx(ret, _cidx);
-          return ret[cidx];
         }
-        function val(obj, _cidx, ridx) {
-          var cidx = getCidx(obj, _cidx);
-          if (typeof (ridx) === 'undefined') {
-            return obj[cidx].values[now()];
-          }
-          if (ridx >= 0) {
-            return obj[cidx].values[ridx];
-          } else {
-            return obj[cidx].inits[obj[cidx].inits.length + ridx];
-          }
-        }
-        function vallen(obj) {
-          return obj[0].values.length;
-        }
-        function inilen(obj) {
-          return obj[0].inits.length;
-        }
-        function ini(obj, _cidx, ridx) {
-          var cidx = getCidx(obj, _cidx);
-          return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
-        }
-        function processAddSub(head, tail) {
-          return tail.reduce(function (result, element) {
-            if (element[1] === '+') { return result + element[2]; }
-            if (element[1] === '-') { return result - element[2]; }
-          }, head);
-        }
-        function processMulDiv(head, tail) {
-          return tail.reduce(function (result, element) {
-            if (element[1] === '*') { return result * element[2]; }
-            if (element[1] === '/') { return result / element[2]; }
-          }, head);
-        }
-        function processFunc(head, tail) {
-          return tail.reduce(function (result, element) {
-            let func = element[1].join('');
-            if (func === 'mod') { return result % element[2]; }
-          }, head);
-        }
-        function processFuncEx(func, aidx, _args) {
-          let args = [];
-          if (aidx === null) {
-            args.push(_args);
-          } else {
-            for (let ai = 0; ai < _args.length; ai++) {
-              args.push(_args[ai][aidx]);
-            }
-          }
-          if (func === 'mod' && args.length === 2) {
-            return args[0] % args[1];
-          } else if (func === 'not' && args.length === 1) {
-            if (!args[0]) {
-              return 1;
-            } else {
-              return 0;
-            }
+        if (func === 'mod' && args.length === 2) {
+          return args[0] % args[1];
+        } else if (func === 'not' && args.length === 1) {
+          if (!args[0]) {
+            return 1;
           } else {
             return 0;
           }
+        } else {
+          return 0;
         }
-        function processDash(seq, tail) {
-          let result = tail.reduce(function (result, element) {
-            var op = element[1];
-            var arg = element[2][0];
-            if (typeof (arg) === 'undefined') {
-              arg = 1;
-            }
-            if (op.charCodeAt() === 39) {
+      }
+      function processDash(seq, tail) {
+        let result = tail.reduce(function (result, element) {
+          var op = element[1];
+          var arg = element[2][0];
+          if (typeof (arg) === 'undefined') {
+            arg = 1;
+          }
+          if (op.charCodeAt() === 39) {
 
-              result.dash++;
-            } else if (op.charCodeAt() === 96) {
-              result.backdash++;
-            }
-            return result;
-          }, { dash: 0, backdash: 0 });
-          let hasBackdash = 0;
-          if (result.backdash !== 0) {
-            hasBackdash = 1;
+            result.dash++;
+          } else if (op.charCodeAt() === 96) {
+            result.backdash++;
           }
-          let cidx = -(result.backdash);
-          let ridx = -(result.dash + hasBackdash);
-          return val(seq, cidx, ridx);
+          return result;
+        }, { dash: 0, backdash: 0 });
+        let hasBackdash = 0;
+        if (result.backdash !== 0) {
+          hasBackdash = 1;
         }
-        function processHashDoller(seq, idx, op) {
-          var arg = idx[0];
-          if (op === '#') {
-            if (typeof (arg) === 'undefined') {
-              return vallen(seq);
-            }
-            return val(seq, 0, arg);
-          } else {
-            if (typeof (arg) === 'undefined') {
-              return inilen(seq);
-            }
-            return ini(seq, 0, arg);
+        let cidx = -(result.backdash);
+        let ridx = -(result.dash + hasBackdash);
+        return val(seq, cidx, ridx);
+      }
+      function processHashDoller(seq, idx, op) {
+        var arg = idx[0];
+        if (op === '#') {
+          if (typeof (arg) === 'undefined') {
+            return vallen(seq);
           }
+          return val(seq, 0, arg);
+        } else {
+          if (typeof (arg) === 'undefined') {
+            return inilen(seq);
+          }
+          return ini(seq, 0, arg);
         }
-        function processTail(head, tail) {
-          let ret = [];
-          for (let ti = 0; ti < tail.length; ti++) {
-            if (tail[ti][2][0]) {
-              ret.push(tail[ti][2][0]);
-            }
-          }
-          if (head !== null) {
-            return head.concat(ret);
-          } else {
-            return ret;
+      }
+      function processTail(head, tail) {
+        let ret = [];
+        for (let ti = 0; ti < tail.length; ti++) {
+          if (tail[ti][2][0]) {
+            ret.push(tail[ti][2][0]);
           }
         }
-        function processStatement(seq, formulaDep, condDep, argvsDep, formulaStr, condStr, argvsStrArray) {
-          let decl = seq[0].name;
-          config.rentaku.decls.push(decl);
-          config.rentaku.rules.push(formulaStr);
-          config.rentaku.conditions.push(condStr);
-          config.rentaku.argvs.push(argvsStrArray);
+        if (head !== null) {
+          return head.concat(ret);
+        } else {
+          return ret;
+        }
+      }
+      function processStatement(seq, formulaDep, condDep, argvsDepArray, formulaStr, condStr, argvsStrArray) {
+        let decl = seq[0].name;
+        config.decls.push(decl);
+        config.iteraita[decl] = {
+          inits: [],
+          values: [],
+          rule: formulaStr,
+          condition: condStr,
+          argvs: argvsStrArray,
+          formulaDep: formulaDep,
+          conditionDep: condDep,
+          argvsDep: argvsDepArray,
+          sideSequences: [],
+        };
+        calcDepend(decl, formulaDep, condDep, argvsDepArray);
 
+        for (let ai = 0; ai < argvsStrArray.length; ai++) {
+          let _decl = '_' + config.serial++;
+          config.decls.push(_decl);
+          config.iteraita[decl].sideSequences.push(_decl);
+          // TODO: condDep support, argvsDepArray is always []
+          config.iteraita[_decl] = {
+            inits: [],
+            values: [],
+            rule: argvsStrArray[ai],
+            condition: [],
+            argvs: [],
+            formulaDep: argvsDepArray[ai],
+            conditionDep: null,
+            argvsDep: null,
+            sideSequences: [],
+          };
+          calcDepend(_decl, argvsDepArray[ai], null, null);
+        }
+        return;
+        function calcDepend(decl, formulaDep, condDep, argvsDepArray) {
           let depend = [];
           depend = depend.concat(formulaDep);
-          depend = depend.concat(condDep);
-          depend = depend.concat(argvsDep);
+          if (condDep) {
+            depend = depend.concat(condDep);
+          }
+          if (argvsDepArray) {
+            for (let ai = 0; ai < argvsDepArray.length; ai++) {
+              depend = depend.concat(argvsDepArray[ai]);
+            }
+          }
           for (let di = 0; di < depend.length; di++) {
             if (!('name' in depend[di])) {
               continue;
@@ -193,201 +222,206 @@ let config = {
             }
           }
         }
-        function processStatements() {
-          let starts = {};
-          let checked = {};
-          setStart(config.rentaku.decls, config.depend, starts, checked);
-          //run();
-          return;
+      }
+      function processStatements() {
+        console.log(config.depend);
+        console.log(config.starts);
+        setStart(config.decls, config.depend, config.starts);
+        run();
+        console.log(config.iteraita);
+        return;
+      }
+      function run(_limit) {
+        if (_limit) {
+          config.limit.value = _limit;
         }
-        function run(_limit) {
-          if (_limit) {
-            config.limit.value = _limit;
-          }
-          config.limit.count = 0;
-          let max = 0;
-          for (let sk in this.starts) {
-            max = Math.max(max, this.starts[sk]);
-          }
-          // main loop
-          max += config.max;
-          for (let i = 0; i < max + config.max; i++) {
-            for (let di = 0; di < config.rentaku.decls.length; di++) {
-              let decl = config.rentaku.decls[di];
-              // TODO: config.iteraita
-              let iter = config.iteraita[decl];
-              // TODO: argv
-              let argv = iter.argv;
-              if (this.starts[decl] <= i && i <= this.starts[decl] + config.max - 1) {
-                if (this.starts[decl] === i) {
-                  let sideArray = [];
-                  let minSides = 0;
-                  let constarg = true;
-                  for (let ai = 0; ai < argv.length; ai++) {
-                    if (decl in config.rentaku.sub && ai in config.rentaku.sub[decl]) {
-                      constarg = false;
-                      // TODO: sub
-                      let _decl = config.rentaku.sub[decl][ai];
-                      let tmp = [];
-                      for (let ii = 0; ii < config.instances[_decl].length; ii++) {
-                        tmp = tmp.concat(config.instances[_decl][ii].values);
-                      }
-                      if (minSides) {
-                        minSides = Math.min(minSides, tmp.length);
-                      } else {
-                        minSides = tmp.length;
-                      }
-                      sideArray.push(tmp);
-                    } else {
-                      let str = argv[ai];
-                      let evaled = config.formulaParser.parse(str);
-                      sideArray.push([evaled]);
+        config.limit.count = 0;
+        let max = 0;
+        for (let sk in config.starts) {
+          max = Math.max(max, config.starts[sk]);
+        }
+        // main loop
+        max += config.max;
+        for (let i = 0; i < max + config.max; i++) {
+          for (let di = 0; di < config.decls.length; di++) {
+            let decl = config.decls[di];
+            let iter = config.iteraita[decl];
+            let argvs = iter.argvs;
+            let argvsDep = iter.argvsDep;
+            if (config.starts[decl] <= i && i <= config.starts[decl] + config.max - 1) {
+              if (config.starts[decl] === i) {
+                let sideArray = [];
+                let minSides = 0;
+                let constarg = true;
+                for (let ai = 0; ai < argvs.length; ai++) {
+                  if (argvsDep[ai].length === 0) {
+                    let str = argvs[ai];
+                    let evaled = config.formulaParser.parse(str);
+                    sideArray.push([evaled]);
+                  } else {
+                    constarg = false;
+                    let _decl = config.iteraita[decl].sideSequences[ai];
+                    let tmp = [];
+                    for (let ii = 0; ii < config.iteraita[_decl].values.length; ii++) {
+                      tmp = tmp.concat(config.iteraita[_decl].values[ii]);
                     }
-                  }
-                  if (constarg) {
-                    minSides = 1;
-                  }
-                  //console.log(decl + ':' + minSides);
-                  for (let mi = 0; mi < minSides; mi++) {
-
-                    let tmpargv = [];
-                    for (let ai = 0; ai < argv.length; ai++) {
-                      let mod = mi % sideArray[ai].length;
-                      tmpargv.push((sideArray[ai][mod]));
-                    }
-
-                    if (decl.indexOf('_') !== 0) {
-                      iter.new(tmpargv);
+                    if (minSides) {
+                      minSides = Math.min(minSides, tmp.length);
                     } else {
-
-                      let varimax = 1;
-
-                      if (decl in config.rentaku.vari) {
-                        let varis = config.rentaku.vari[decl];
-                        for (let vi = 0; vi < varis.length; vi++) {
-                          let vari = varis[vi];
-                          varimax = Math.max(varimax, config.instances[vari].length);
-                        }
+                      minSides = tmp.length;
+                    }
+                    sideArray.push(tmp);
+                  }
+                }
+                if (constarg) {
+                  minSides = 1;
+                }
+                //console.log(decl + ':' + minSides);
+                for (let mi = 0; mi < minSides; mi++) {
+                  let tmpargv = [];
+                  for (let ai = 0; ai < argvs.length; ai++) {
+                    let mod = mi % sideArray[ai].length;
+                    tmpargv.push((sideArray[ai][mod]));
+                  }
+                  if (decl.indexOf('_') !== 0) {
+                    appendColumn(iter,tmpargv);
+                  } else {
+                    let varimax = 1;
+                    let varis = [];
+                    if (iter.formulaDep && iter.formulaDep.length>0) {
+                      varis = varis.concat(iter.formulaDep);
+                    }
+                    if (iter.conditionDep && iter.condionDept.length>0) {
+                      varis = varis.concat(iter.condionDep);
+                    }
+                    if (varis.length>0) {
+                      for (let vi = 0; vi < varis.length; vi++) {
+                        let vari = varis[vi].name;
+                        varimax = Math.max(varimax, config.iteraita[vari].values.length);
                       }
-                      for (let vi = 0; vi < varimax; vi++) {
-                        iter.new(tmpargv);
-                      }
+                    }
+                    for (let vi = 0; vi < varimax; vi++) {
+                      appendColumn(iter,tmpargv);
                     }
                   }
                 }
-                for (let ii = 0; ii < config.instances[decl].length; ii++) {
-                  let inst = config.instances[decl][ii];
-                  inst.next();
-                }
+              }
+              for (let ii = 0; ii < iter.values.length; ii++) {
+                appendRow(iter, ii);
               }
             }
           }
-          return;
         }
-        function setStart(decls, depend, starts, checked) {
-          // clear
-          for (let di = 0; di < decls.length; di++) {
-            let decl = decls[di];
-            if (decl in starts) {
-              delete starts[decl];
-            }
-            if (decl in checked) {
-              delete checked[decl];
-            }
+        return;
+      }
+      function appendColumn(iter, argvs) {
+        iter.inits.push(argvs.concat([]));
+        iter.values.push([]);
+      }
+      function appendRow(iter, cidx) {
+        // TODO
+        let val = 0;
+        iter.values[cidx].push(val);
+      }
+      function setStart(decls, depend, starts) {
+        // clear
+        for (let di = 0; di < decls.length; di++) {
+          let decl = decls[di];
+          if (decl in starts) {
+            delete starts[decl];
           }
-          for (let di = 0; di < decls.length; di++) {
-            let decl = decls[di];
-            if (!(decl in depend)) {
-              starts[decl] = 0;
-            }
+        }
+        for (let di = 0; di < decls.length; di++) {
+          let decl = decls[di];
+          if (!(decl in depend)) {
+            starts[decl] = 0;
           }
-          let tmp = {};
-          for (let di = 0; di < decls.length; di++) {
-            let outs = [];
-            let decl = decls[di];
-            setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
-            let maxout = 0;
-            for (let oi = 0; oi < outs.length; oi++) {
-              maxout = Math.max(maxout, outs[oi]);
-            }
-            tmp[decl] = maxout;
+        }
+        let tmp = {};
+        for (let di = 0; di < decls.length; di++) {
+          let outs = [];
+          let decl = decls[di];
+          setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
+          let maxout = 0;
+          for (let oi = 0; oi < outs.length; oi++) {
+            maxout = Math.max(maxout, outs[oi]);
           }
-          for (let decl in tmp) {
-            starts[decl] = tmp[decl];
-          }
-          return;
+          tmp[decl] = maxout;
+        }
+        for (let decl in tmp) {
+          starts[decl] = tmp[decl];
+        }
+        return;
 
-          function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
-            if (decls.length === 0) {
-              return;
-            }
-            if (depth > maxdepth) {
-              throw 'loop detected:' + depth;
-            }
-            for (let di = 0; di < decls.length; di++) {
-              let nextins = [];
-              let decl = decls[di];
-              let array = [];
-              for (let dk in depend[decl]) {
-                if (dk in starts) {
-                  outs.push(ins[di] + depend[decl][dk]);
-                } else {
-                  array.push(dk);
-                  nextins.push(ins[di] + depend[decl][dk]);
-                }
-              }
-              setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
-            }
+        function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
+          if (decls.length === 0) {
+            return;
           }
-        }
-        function test() {
-          let decls = ['A', 'B'];
-          let depend = {
-            B: { A: 10 }
-          };
-          let starts = {};
-          let checked = {};
-          setStart(decls, depend, starts, checked);
-          console.log(starts);
+          if (depth > maxdepth) {
+            throw 'loop detected:' + depth;
+          }
+          for (let di = 0; di < decls.length; di++) {
+            let nextins = [];
+            let decl = decls[di];
+            let array = [];
+            for (let dk in depend[decl]) {
+              if (dk in starts) {
+                outs.push(ins[di] + depend[decl][dk]);
+              } else {
+                array.push(dk);
+                nextins.push(ins[di] + depend[decl][dk]);
+              }
+            }
+            setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
+          }
         }
       }
-    };
-    // uncomment for test
-    //(param.func())();
-
-
-    let funcStr = JSON.stringify(param.func, replacer);
-    funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
-
-    let formulaStr = getFormulaStr(funcStr);
-    config.formulaParser = peg.generate(formulaStr);
-
-    function replacer(k, v) {
-      if (typeof v === 'function') { return v.toString(); };
-      if (typeof v === 'class') { return v.toString(); };
-      return v;
+      function test() {
+        let decls = ['A', 'B'];
+        let depend = {
+          B: { A: 10 }
+        };
+        setStart(decls, depend, config.starts);
+        console.log(starts);
+      }
     }
-    let statementStr = getStatementStr(funcStr);
-    let statementParser = peg.generate(statementStr);
+  };
+  // uncomment for test
+  //(param.func())();
 
-    console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
+
+  let funcStr = JSON.stringify(param.func, replacer);
+  funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
+
+  let formulaStr = getFormulaStr(funcStr);
+  config.formulaParser = peg.generate(formulaStr);
+
+  function replacer(k, v) {
+    if (typeof v === 'function') { return v.toString(); };
+    if (typeof v === 'class') { return v.toString(); };
+    return v;
+  }
+  let statementStr = getStatementStr(funcStr);
+  let statementParser = peg.generate(statementStr);
+
+  console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
   B @ A# 
   C @ B#` + '\n'));
 
-    /*
-    console.log(statementParser.parse(`A @ B# + 1 
-    +2 | A=B
-    [1][B]
-    B @ 1` + '\n'));
-  */
+  /*
+  console.log(statementParser.parse(`A @ B# + 1 
+  +2 | A=B
+  [1][B]
+  B @ 1` + '\n'));
+*/
 
-    function getStatementStr(funcStr) {
+  function getStatementStr(funcStr) {
 
-      let signed = '\\+\\-';
-      let wsp = ' \\t\\n\\r';
-      let dash = `"'"`;
-      let backdash = "'`'";
-      return `
+    let signed = '\\+\\-';
+    let wsp = ' \\t\\n\\r';
+    let dash = `"'"`;
+    let backdash = "'`'";
+    return `
 
 // Simple Arithmetics Grammar
 // ==========================
@@ -402,6 +436,9 @@ Statements
 }
 
 Statement
+/*
+= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
+*/
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ']' _ )*
 {
   let _condStr = '';
@@ -411,13 +448,13 @@ Statement
     _cond = cond[2];
   }
   let _argvsStrArray = [];
-  let _argvs = [];
+  let _argvsArray = [];
   for (let ai=0;ai<argvs.length;ai++) {
     _argvsStrArray.push(argvs[ai][1].pop().text);
-    _argvs = _argvs.concat(argvs[ai][1]);
+    _argvsArray.push(argvs[ai][1]);
   }
   let _formulaStr = formula.pop().text;
-  processStatement(seq,formula, _cond, _argvs, _formulaStr, _condStr,_argvsStrArray);
+  processStatement(seq,formula, _cond, _argvsArray, _formulaStr, _condStr,_argvsStrArray);
 }
 
 Condition
@@ -561,13 +598,13 @@ _
   
   
 `;
-    }
-    function getFormulaStr(funcStr) {
-      let signed = '\\+\\-';
-      let wsp = ' \\t\\n\\r';
-      let dash = `"'"`;
-      let backdash = "'\\\`'";
-      return `
+  }
+  function getFormulaStr(funcStr) {
+    let signed = '\\+\\-';
+    let wsp = ' \\t\\n\\r';
+    let dash = `"'"`;
+    let backdash = "'\\\`'";
+    return `
 
 // Simple Arithmetics Grammar
 // ==========================
@@ -645,8 +682,8 @@ _
 = [${wsp}]*
   
 `;
-    }
-  })(console,
+  }
+})(console,
   typeof (peg) === 'undefined'
     ? { generate: function () { return { parse: function () { } } } }
     : peg
