@@ -158,7 +158,7 @@
           return ret;
         }
       }
-      function processStatement(seq, formula, cond, argvs, text) {
+      function processStatement(seq, formulaDep, condDep, argvsDep, text) {
         let decl = seq[0].name;
         param.rentaku.decls.push(decl);
         param.rentaku.rules.push(text);
@@ -167,16 +167,14 @@
         
         param.depend[decl] = {};
         let depend = [];
-        depend = depend.concat(formula);
-        for (let ai = 0; ai < argvs.length; ai++) {
-          depend = depend.concat(argvs[ai][1]);
-        }
-        let dep = param.depend[decl];
+        depend = depend.concat(formulaDep);
+        depend = depend.concat(condDep);
+        depend = depend.concat(argvsDep);
         for (let di = 0; di < depend.length; di++) {
-          let name = depend[di].name;
-          if (!(name in depend[di])) {
+          if (!('name' in depend[di])) {
             continue;
           }
+          let name = depend[di].name;
           if (name !== decl) {
             if (!(name in param.depend[decl])) {
               param.depend[decl][name] = 0;
@@ -192,8 +190,8 @@
       function processStatements() {
         let starts = {};
         let checked = {};
+        console.log(param.depend);
         setStart(param.rentaku.decls, starts, checked);
-
         console.log(starts);
         return;
         function setStart(decls, starts, checked) {
@@ -272,7 +270,8 @@
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
   console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
-  B @ A# ` + '\n'));
+  B @ A# 
+  C @ B#` + '\n'));
   /*
   console.log(statementParser.parse(`A @ B# + 1 
   +2 | A=B
@@ -306,24 +305,28 @@ Statements
 Statement
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ']' _ )*
 {
-  let _cond = '';
+  let _condStr = '';
+  let _cond = [];
   if (cond && cond.length>0) {
-    _cond = cond[2].pop().text;
+    _condStr = cond[2].pop().text;
+    _cond = cond[2];
   }
+  let _argvsStr = [];
   let _argvs = [];
   for (let ai=0;ai<argvs.length;ai++) {
-    _argvs.push(argvs[ai][1].pop().text);
+    _argvsStr.push(argvs[ai][1].pop().text);
+    _argvs = _argvs.concat(argvs[ai][1]);
   }
   let condStr = '';
   let argvsStr = '';
-  if (_cond.length>0) {
-    condStr = ' | '+_cond;
+  if (_condStr.length>0) {
+    condStr = ' | '+_condStr;
   }
-  if (_argvs.length>0) {
-    argvsStr = ' ['+_argvs.join('][')+']';
+  if (_argvsStr.length>0) {
+    argvsStr = ' ['+_argvsStr.join('][')+']';
   }
   let text = seq[0].name + ' @ '+ formula.pop().text + condStr + argvsStr;
-  processStatement(seq,formula, cond, argvs, text);
+  processStatement(seq,formula, _cond, _argvs, text);
 }
 
 Condition
@@ -400,31 +403,29 @@ SysOperatedDash
   return [];
 }
 
-
 SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex*
+= seq:Sequence _ '$' idx:SysIndex*
 {
     return [{
       type: 'seqend',
       name: seq[0].name,
     }]; 
 }
-/ _ op:'$' idx:SysIndex*
+/ _ '$' idx:SysIndex*
 {
     return [];
 }
 
 SysOperatedHash
-= (
-  seq:Sequence _ op:'#' idx:SysIndex* 
-  {
+= seq:Sequence _ '#' idx:SysIndex* 
+{
     return [{
       type: 'seqend',
       name: seq[0].name,
     }];
-  }
-/ _ op:'#' idx:SysIndex* 
-) {
+ }
+/ _ '#' idx:SysIndex* 
+{
     return [];
 }
 
