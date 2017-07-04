@@ -1,5 +1,10 @@
 'use strict';
 let config = {
+  state: { 
+    self: null,
+    now: 0,
+  },
+  formulaParser: null,
   limit: {
     count: 0,
     values: 10000,
@@ -7,8 +12,7 @@ let config = {
   starts: [],
   constval: 4,
   max: 4,
-  iteraita: {}, // TODO: { A: {values: [ [0,1,2,3],[0,2,3,4]], inits: [ [0,1,2,3],[0,2,3,4]] }} 
-  instances: {}, // TODO: may be to be deleted
+  iteraita: {},
   decls: [],
   serial: 0,
   depend: {},
@@ -20,7 +24,7 @@ let config = {
       return test;
 
       function now() {
-        return 0;
+        return config.state.now;
       }
       function getCidx(obj, _cidx) {
         var cidx = 0;
@@ -29,43 +33,31 @@ let config = {
         }
         return cidx;
       }
-      function self(_cidx) {
-        var ret = [
-          {
-            inits: [-3, -2, -1, 0],
-            values: [1, 2, 3, 4, 5, 6, 7]
-          },
-          {
-            inits: [-6, -4, -2, 0],
-            values: [2, 4, 6, 8, 10, 12, 14]
-          }
-        ];
-        if (typeof (_cidx) === 'undefined') {
-          return ret;
-        }
-        var cidx = getCidx(ret, _cidx);
-        return ret[cidx];
+      function self() {
+        var ret = config.iteraita[config.state.self];
+        return ret;
       }
       function val(obj, _cidx, ridx) {
         var cidx = getCidx(obj, _cidx);
         if (typeof (ridx) === 'undefined') {
-          return obj[cidx].values[now()];
+          return obj.values[cidx][now()];
         }
         if (ridx >= 0) {
-          return obj[cidx].values[ridx];
+          return obj.values[cidx][ridx];
         } else {
-          return obj[cidx].inits[obj[cidx].inits.length + ridx];
+          console.log(obj);
+          return obj.inits[cidx][obj.inits[cidx].length + ridx];
         }
       }
       function vallen(obj) {
-        return obj[0].values.length;
+        return obj.values[0].length;
       }
       function inilen(obj) {
-        return obj[0].inits.length;
+        return obj.inits[0].length;
       }
       function ini(obj, _cidx, ridx) {
         var cidx = getCidx(obj, _cidx);
-        return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
+        return obj.inits[cidx][obj.inits[cidx].length - ridx - 1];
       }
       function processAddSub(head, tail) {
         return tail.reduce(function (result, element) {
@@ -162,7 +154,7 @@ let config = {
         config.iteraita[decl] = {
           inits: [],
           values: [],
-          rule: formulaStr,
+          formula: formulaStr,
           condition: condStr,
           argvs: argvsStrArray,
           formulaDep: formulaDep,
@@ -180,7 +172,7 @@ let config = {
           config.iteraita[_decl] = {
             inits: [],
             values: [],
-            rule: argvsStrArray[ai],
+            formula: argvsStrArray[ai],
             condition: [],
             argvs: [],
             formulaDep: argvsDepArray[ai],
@@ -243,8 +235,10 @@ let config = {
         // main loop
         max += config.max;
         for (let i = 0; i < max + config.max; i++) {
+          config.state.now = i%max;
           for (let di = 0; di < config.decls.length; di++) {
             let decl = config.decls[di];
+            config.state.self = decl;
             let iter = config.iteraita[decl];
             let argvs = iter.argvs;
             let argvsDep = iter.argvsDep;
@@ -319,8 +313,11 @@ let config = {
         iter.values.push([]);
       }
       function appendRow(iter, cidx) {
-        // TODO
-        let val = 0;
+        // TODO: check condition
+        let str = iter.formula;
+        console.log(str);
+        let val = config.formulaParser.parse(str);
+        console.log(val);
         iter.values[cidx].push(val);
       }
       function setStart(decls, depend, starts) {
@@ -404,7 +401,7 @@ let config = {
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
-  console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
+  console.log(statementParser.parse(`A @ A'+1 | A >= 0 [0]
   B @ A# 
   C @ B#` + '\n'));
 
@@ -658,7 +655,7 @@ SysIndex
 }
 
 Sequence 
-= _ [A-Z]+ _ { return self();}
+= _ seq:[A-Z]+ _ { return config.iteraita[seq.join('')];}
 
 UnsignedNumber
 = _ $( _UnsignedFloat / _UnsignedInt) _
