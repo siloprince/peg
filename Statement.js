@@ -29,7 +29,7 @@ let config = {
       function getCidx(obj, _cidx) {
         var cidx = 0;
         if (typeof (_cidx) === 'undefined') {
-          cidx = (_cidx + obj.length * 10) % obj.length;
+          cidx = (_cidx + obj.values.length * 10) % obj.values.length;
         }
         return cidx;
       }
