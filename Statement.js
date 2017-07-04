@@ -1,312 +1,393 @@
 'use strict';
-let global={
-  
+let config = {
+  limit: {
+    count: 0,
+    values: 10000,
+  },
+  constval: 4,
+  max: 4,
+  iteraita: {}, // TODO: { A: {vals: [ [0,1,2,3],[0,2,3,4]], inis: [ [0,1,2,3],[0,2,3,4]] }} 
+  instances: {}, // TODO: may be to be deleted
+  rentaku: {
+    decls: [],
+    rules: [],
+    conditions: [],
+    argvs: [],
+    tmp: 0,  // TODO: what?
+    sub: {},  // TODO: what?
+    vari: {},  // TODO: what?
+  },
+  depend: {},
 };
-(function (console, peg) {
-  let param = {
-    func: function () {
-      return test;
 
-      let config = {
-        limit: {
-          count: 0,
-          values: 10000,
-        },
-        constval: 4,
-        max: 4,
-        iteraita: {},
-        instances: {},
-        rentaku: {
-          decls: [],
-          rules: [],
-          argvs: [],
-          tmp: 0,
-          sub: {},
-          vari: {},
-        },
-        depend: {},
-      }
-      function now() {
-        return 0;
-      }
-      function getCidx(obj, _cidx) {
-        var cidx = 0;
-        if (typeof (_cidx) === 'undefined') {
-          cidx = (_cidx + obj.length * 10) % obj.length;
+  (function (console, peg) {
+    let param = {
+      func: function () {
+        return test;
+
+        function now() {
+          return 0;
         }
-        return cidx;
-      }
-      function self(_cidx) {
-        var ret = [
-          {
-            inits: [-3, -2, -1, 0],
-            values: [1, 2, 3, 4, 5, 6, 7]
-          },
-          {
-            inits: [-6, -4, -2, 0],
-            values: [2, 4, 6, 8, 10, 12, 14]
+        function getCidx(obj, _cidx) {
+          var cidx = 0;
+          if (typeof (_cidx) === 'undefined') {
+            cidx = (_cidx + obj.length * 10) % obj.length;
           }
-        ];
-        if (typeof (_cidx) === 'undefined') {
-          return ret;
+          return cidx;
         }
-        var cidx = getCidx(ret, _cidx);
-        return ret[cidx];
-      }
-      function val(obj, _cidx, ridx) {
-        var cidx = getCidx(obj, _cidx);
-        if (typeof (ridx) === 'undefined') {
-          return obj[cidx].values[now()];
+        function self(_cidx) {
+          var ret = [
+            {
+              inits: [-3, -2, -1, 0],
+              values: [1, 2, 3, 4, 5, 6, 7]
+            },
+            {
+              inits: [-6, -4, -2, 0],
+              values: [2, 4, 6, 8, 10, 12, 14]
+            }
+          ];
+          if (typeof (_cidx) === 'undefined') {
+            return ret;
+          }
+          var cidx = getCidx(ret, _cidx);
+          return ret[cidx];
         }
-        if (ridx >= 0) {
-          return obj[cidx].values[ridx];
-        } else {
-          return obj[cidx].inits[obj[cidx].inits.length + ridx];
-        }
-      }
-      function vallen(obj) {
-        return obj[0].values.length;
-      }
-      function inilen(obj) {
-        return obj[0].inits.length;
-      }
-      function ini(obj, _cidx, ridx) {
-        var cidx = getCidx(obj, _cidx);
-        return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
-      }
-      function processAddSub(head, tail) {
-        return tail.reduce(function (result, element) {
-          if (element[1] === '+') { return result + element[2]; }
-          if (element[1] === '-') { return result - element[2]; }
-        }, head);
-      }
-      function processMulDiv(head, tail) {
-        return tail.reduce(function (result, element) {
-          if (element[1] === '*') { return result * element[2]; }
-          if (element[1] === '/') { return result / element[2]; }
-        }, head);
-      }
-      function processFunc(head, tail) {
-        return tail.reduce(function (result, element) {
-          let func = element[1].join('');
-          if (func === 'mod') { return result % element[2]; }
-        }, head);
-      }
-      function processFuncEx(func, aidx, _args) {
-        let args = [];
-        if (aidx === null) {
-          args.push(_args);
-        } else {
-          for (let ai = 0; ai < _args.length; ai++) {
-            args.push(_args[ai][aidx]);
+        function val(obj, _cidx, ridx) {
+          var cidx = getCidx(obj, _cidx);
+          if (typeof (ridx) === 'undefined') {
+            return obj[cidx].values[now()];
+          }
+          if (ridx >= 0) {
+            return obj[cidx].values[ridx];
+          } else {
+            return obj[cidx].inits[obj[cidx].inits.length + ridx];
           }
         }
-        if (func === 'mod' && args.length === 2) {
-          return args[0] % args[1];
-        } else if (func === 'not' && args.length === 1) {
-          if (!args[0]) {
-            return 1;
+        function vallen(obj) {
+          return obj[0].values.length;
+        }
+        function inilen(obj) {
+          return obj[0].inits.length;
+        }
+        function ini(obj, _cidx, ridx) {
+          var cidx = getCidx(obj, _cidx);
+          return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
+        }
+        function processAddSub(head, tail) {
+          return tail.reduce(function (result, element) {
+            if (element[1] === '+') { return result + element[2]; }
+            if (element[1] === '-') { return result - element[2]; }
+          }, head);
+        }
+        function processMulDiv(head, tail) {
+          return tail.reduce(function (result, element) {
+            if (element[1] === '*') { return result * element[2]; }
+            if (element[1] === '/') { return result / element[2]; }
+          }, head);
+        }
+        function processFunc(head, tail) {
+          return tail.reduce(function (result, element) {
+            let func = element[1].join('');
+            if (func === 'mod') { return result % element[2]; }
+          }, head);
+        }
+        function processFuncEx(func, aidx, _args) {
+          let args = [];
+          if (aidx === null) {
+            args.push(_args);
+          } else {
+            for (let ai = 0; ai < _args.length; ai++) {
+              args.push(_args[ai][aidx]);
+            }
+          }
+          if (func === 'mod' && args.length === 2) {
+            return args[0] % args[1];
+          } else if (func === 'not' && args.length === 1) {
+            if (!args[0]) {
+              return 1;
+            } else {
+              return 0;
+            }
           } else {
             return 0;
           }
-        } else {
-          return 0;
         }
-      }
-      function processDash(seq, tail) {
-        let result = tail.reduce(function (result, element) {
-          var op = element[1];
-          var arg = element[2][0];
-          if (typeof (arg) === 'undefined') {
-            arg = 1;
-          }
-          if (op.charCodeAt() === 39) {
-
-            result.dash++;
-          } else if (op.charCodeAt() === 96) {
-            result.backdash++;
-          }
-          return result;
-        }, { dash: 0, backdash: 0 });
-        let hasBackdash = 0;
-        if (result.backdash !== 0) {
-          hasBackdash = 1;
-        }
-        let cidx = -(result.backdash);
-        let ridx = -(result.dash + hasBackdash);
-        return val(seq, cidx, ridx);
-      }
-      function processHashDoller(seq, idx, op) {
-        var arg = idx[0];
-        if (op === '#') {
-          if (typeof (arg) === 'undefined') {
-            return vallen(seq);
-          }
-          return val(seq, 0, arg);
-        } else {
-          if (typeof (arg) === 'undefined') {
-            return inilen(seq);
-          }
-          return ini(seq, 0, arg);
-        }
-      }
-      function processTail(head, tail) {
-        let ret = [];
-        for (let ti = 0; ti < tail.length; ti++) {
-          if (tail[ti][2][0]) {
-            ret.push(tail[ti][2][0]);
-          }
-        }
-        if (head !== null) {
-          return head.concat(ret);
-        } else {
-          return ret;
-        }
-      }
-      function processStatement(seq, formulaDep, condDep, argvsDep, text) {
-        let decl = seq[0].name;
-        config.rentaku.decls.push(decl);
-        config.rentaku.rules.push(text);
-
-        console.log(text);
-
-        let depend = [];
-        depend = depend.concat(formulaDep);
-        depend = depend.concat(condDep);
-        depend = depend.concat(argvsDep);
-        for (let di = 0; di < depend.length; di++) {
-          if (!('name' in depend[di])) {
-            continue;
-          }
-          let name = depend[di].name;
-          if (name !== decl) {
-            if (!(decl in config.depend)) {
-              config.depend[decl] = {};
+        function processDash(seq, tail) {
+          let result = tail.reduce(function (result, element) {
+            var op = element[1];
+            var arg = element[2][0];
+            if (typeof (arg) === 'undefined') {
+              arg = 1;
             }
-            if (!(name in config.depend[decl])) {
-              config.depend[decl][name] = 0;
+            if (op.charCodeAt() === 39) {
+
+              result.dash++;
+            } else if (op.charCodeAt() === 96) {
+              result.backdash++;
             }
-            if (depend[di].type === 'seqend') {
-              config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
-            } else {
-              config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
+            return result;
+          }, { dash: 0, backdash: 0 });
+          let hasBackdash = 0;
+          if (result.backdash !== 0) {
+            hasBackdash = 1;
+          }
+          let cidx = -(result.backdash);
+          let ridx = -(result.dash + hasBackdash);
+          return val(seq, cidx, ridx);
+        }
+        function processHashDoller(seq, idx, op) {
+          var arg = idx[0];
+          if (op === '#') {
+            if (typeof (arg) === 'undefined') {
+              return vallen(seq);
+            }
+            return val(seq, 0, arg);
+          } else {
+            if (typeof (arg) === 'undefined') {
+              return inilen(seq);
+            }
+            return ini(seq, 0, arg);
+          }
+        }
+        function processTail(head, tail) {
+          let ret = [];
+          for (let ti = 0; ti < tail.length; ti++) {
+            if (tail[ti][2][0]) {
+              ret.push(tail[ti][2][0]);
             }
           }
+          if (head !== null) {
+            return head.concat(ret);
+          } else {
+            return ret;
+          }
         }
-      }
-      function processStatements() {
-        let starts = {};
-        let checked = {};
-        setStart(config.rentaku.decls, config.depend, starts, checked);
+        function processStatement(seq, formulaDep, condDep, argvsDep, formulaStr, condStr, argvsStrArray) {
+          let decl = seq[0].name;
+          config.rentaku.decls.push(decl);
+          config.rentaku.rules.push(formulaStr);
+          config.rentaku.conditions.push(condStr);
+          config.rentaku.argvs.push(argvsStrArray);
 
-        console.log(global.formulaParser.parse('1+1'));
-
-        return;
-      }
-      function setStart(decls, depend, starts, checked) {
-        // clear
-        for (let di = 0; di < decls.length; di++) {
-          let decl = decls[di];
-          if (decl in starts) {
-            delete starts[decl];
-          }
-          if (decl in checked) {
-            delete checked[decl];
-          }
-        }
-        for (let di = 0; di < decls.length; di++) {
-          let decl = decls[di];
-          if (!(decl in depend)) {
-            starts[decl] = 0;
-          }
-        }
-        let tmp = {};
-        for (let di = 0; di < decls.length; di++) {
-          let outs = [];
-          let decl = decls[di];
-          setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
-          let maxout = 0;
-          for (let oi = 0; oi < outs.length; oi++) {
-            maxout = Math.max(maxout, outs[oi]);
-          }
-          tmp[decl] = maxout;
-        }
-        for (let decl in tmp) {
-          starts[decl] = tmp[decl];
-        }
-        return;
-
-        function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
-          if (decls.length === 0) {
-            return;
-          }
-          if (depth > maxdepth) {
-            throw 'loop detected:' + depth;
-          }
-          for (let di = 0; di < decls.length; di++) {
-            let nextins = [];
-            let decl = decls[di];
-            let array = [];
-            for (let dk in depend[decl]) {
-              if (dk in starts) {
-                outs.push(ins[di] + depend[decl][dk]);
+          let depend = [];
+          depend = depend.concat(formulaDep);
+          depend = depend.concat(condDep);
+          depend = depend.concat(argvsDep);
+          for (let di = 0; di < depend.length; di++) {
+            if (!('name' in depend[di])) {
+              continue;
+            }
+            let name = depend[di].name;
+            if (name !== decl) {
+              if (!(decl in config.depend)) {
+                config.depend[decl] = {};
+              }
+              if (!(name in config.depend[decl])) {
+                config.depend[decl][name] = 0;
+              }
+              if (depend[di].type === 'seqend') {
+                config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
               } else {
-                array.push(dk);
-                nextins.push(ins[di] + depend[decl][dk]);
+                config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
               }
             }
-            setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
           }
         }
+        function processStatements() {
+          let starts = {};
+          let checked = {};
+          setStart(config.rentaku.decls, config.depend, starts, checked);
+          //run();
+          return;
+        }
+        function run(_limit) {
+          if (_limit) {
+            config.limit.value = _limit;
+          }
+          config.limit.count = 0;
+          let max = 0;
+          for (let sk in this.starts) {
+            max = Math.max(max, this.starts[sk]);
+          }
+          // main loop
+          max += config.max;
+          for (let i = 0; i < max + config.max; i++) {
+            for (let di = 0; di < config.rentaku.decls.length; di++) {
+              let decl = config.rentaku.decls[di];
+              // TODO: config.iteraita
+              let iter = config.iteraita[decl];
+              // TODO: argv
+              let argv = iter.argv;
+              if (this.starts[decl] <= i && i <= this.starts[decl] + config.max - 1) {
+                if (this.starts[decl] === i) {
+                  let sideArray = [];
+                  let minSides = 0;
+                  let constarg = true;
+                  for (let ai = 0; ai < argv.length; ai++) {
+                    if (decl in config.rentaku.sub && ai in config.rentaku.sub[decl]) {
+                      constarg = false;
+                      // TODO: sub
+                      let _decl = config.rentaku.sub[decl][ai];
+                      let tmp = [];
+                      for (let ii = 0; ii < config.instances[_decl].length; ii++) {
+                        tmp = tmp.concat(config.instances[_decl][ii].values);
+                      }
+                      if (minSides) {
+                        minSides = Math.min(minSides, tmp.length);
+                      } else {
+                        minSides = tmp.length;
+                      }
+                      sideArray.push(tmp);
+                    } else {
+                      let str = argv[ai];
+                      let evaled = config.formulaParser.parse(str);
+                      sideArray.push([evaled]);
+                    }
+                  }
+                  if (constarg) {
+                    minSides = 1;
+                  }
+                  //console.log(decl + ':' + minSides);
+                  for (let mi = 0; mi < minSides; mi++) {
+
+                    let tmpargv = [];
+                    for (let ai = 0; ai < argv.length; ai++) {
+                      let mod = mi % sideArray[ai].length;
+                      tmpargv.push((sideArray[ai][mod]));
+                    }
+
+                    if (decl.indexOf('_') !== 0) {
+                      iter.new(tmpargv);
+                    } else {
+
+                      let varimax = 1;
+
+                      if (decl in config.rentaku.vari) {
+                        let varis = config.rentaku.vari[decl];
+                        for (let vi = 0; vi < varis.length; vi++) {
+                          let vari = varis[vi];
+                          varimax = Math.max(varimax, config.instances[vari].length);
+                        }
+                      }
+                      for (let vi = 0; vi < varimax; vi++) {
+                        iter.new(tmpargv);
+                      }
+                    }
+                  }
+                }
+                for (let ii = 0; ii < config.instances[decl].length; ii++) {
+                  let inst = config.instances[decl][ii];
+                  inst.next();
+                }
+              }
+            }
+          }
+          return;
+        }
+        function setStart(decls, depend, starts, checked) {
+          // clear
+          for (let di = 0; di < decls.length; di++) {
+            let decl = decls[di];
+            if (decl in starts) {
+              delete starts[decl];
+            }
+            if (decl in checked) {
+              delete checked[decl];
+            }
+          }
+          for (let di = 0; di < decls.length; di++) {
+            let decl = decls[di];
+            if (!(decl in depend)) {
+              starts[decl] = 0;
+            }
+          }
+          let tmp = {};
+          for (let di = 0; di < decls.length; di++) {
+            let outs = [];
+            let decl = decls[di];
+            setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
+            let maxout = 0;
+            for (let oi = 0; oi < outs.length; oi++) {
+              maxout = Math.max(maxout, outs[oi]);
+            }
+            tmp[decl] = maxout;
+          }
+          for (let decl in tmp) {
+            starts[decl] = tmp[decl];
+          }
+          return;
+
+          function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
+            if (decls.length === 0) {
+              return;
+            }
+            if (depth > maxdepth) {
+              throw 'loop detected:' + depth;
+            }
+            for (let di = 0; di < decls.length; di++) {
+              let nextins = [];
+              let decl = decls[di];
+              let array = [];
+              for (let dk in depend[decl]) {
+                if (dk in starts) {
+                  outs.push(ins[di] + depend[decl][dk]);
+                } else {
+                  array.push(dk);
+                  nextins.push(ins[di] + depend[decl][dk]);
+                }
+              }
+              setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
+            }
+          }
+        }
+        function test() {
+          let decls = ['A', 'B'];
+          let depend = {
+            B: { A: 10 }
+          };
+          let starts = {};
+          let checked = {};
+          setStart(decls, depend, starts, checked);
+          console.log(starts);
+        }
       }
-      function test() {
-        let decls = ['A', 'B'];
-        let depend = {
-          B: { A: 10 }
-        };
-        let starts = {};
-        let checked = {};
-        setStart(decls, depend, starts, checked);
-        console.log(starts);
-      }
+    };
+    // uncomment for test
+    //(param.func())();
+
+
+    let funcStr = JSON.stringify(param.func, replacer);
+    funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
+
+    let formulaStr = getFormulaStr(funcStr);
+    config.formulaParser = peg.generate(formulaStr);
+
+    function replacer(k, v) {
+      if (typeof v === 'function') { return v.toString(); };
+      if (typeof v === 'class') { return v.toString(); };
+      return v;
     }
-  };
-  // uncomment for test
-  //(param.func())();
+    let statementStr = getStatementStr(funcStr);
+    let statementParser = peg.generate(statementStr);
 
-
-  let funcStr = JSON.stringify(param.func, replacer);
-  funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
-
-  let formulaStr = getFormulaStr(funcStr);
-  global.formulaParser = peg.generate(formulaStr);
-
-  function replacer(k, v) {
-    if (typeof v === 'function') { return v.toString(); };
-    if (typeof v === 'class') { return v.toString(); };
-    return v;
-  }
-  let statementStr = getStatementStr(funcStr);
-  let statementParser = peg.generate(statementStr);
-
-  console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
+    console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
   B @ A# 
   C @ B#` + '\n'));
 
-  /*
-  console.log(statementParser.parse(`A @ B# + 1 
-  +2 | A=B
-  [1][B]
-  B @ 1` + '\n'));
-*/
+    /*
+    console.log(statementParser.parse(`A @ B# + 1 
+    +2 | A=B
+    [1][B]
+    B @ 1` + '\n'));
+  */
 
-  function getStatementStr(funcStr) {
+    function getStatementStr(funcStr) {
 
-    let signed = '\\+\\-';
-    let wsp = ' \\t\\n\\r';
-    let dash = `"'"`;
-    let backdash = "'`'";
-    return `
+      let signed = '\\+\\-';
+      let wsp = ' \\t\\n\\r';
+      let dash = `"'"`;
+      let backdash = "'`'";
+      return `
 
 // Simple Arithmetics Grammar
 // ==========================
@@ -329,22 +410,14 @@ Statement
     _condStr = cond[2].pop().text;
     _cond = cond[2];
   }
-  let _argvsStr = [];
+  let _argvsStrArray = [];
   let _argvs = [];
   for (let ai=0;ai<argvs.length;ai++) {
-    _argvsStr.push(argvs[ai][1].pop().text);
+    _argvsStrArray.push(argvs[ai][1].pop().text);
     _argvs = _argvs.concat(argvs[ai][1]);
   }
-  let condStr = '';
-  let argvsStr = '';
-  if (_condStr.length>0) {
-    condStr = ' | '+_condStr;
-  }
-  if (_argvsStr.length>0) {
-    argvsStr = ' ['+_argvsStr.join('][')+']';
-  }
-  let text = seq[0].name + ' @ '+ formula.pop().text + condStr + argvsStr;
-  processStatement(seq,formula, _cond, _argvs, text);
+  let _formulaStr = formula.pop().text;
+  processStatement(seq,formula, _cond, _argvs, _formulaStr, _condStr,_argvsStrArray);
 }
 
 Condition
@@ -488,13 +561,13 @@ _
   
   
 `;
-  }
-  function getFormulaStr(funcStr) {
-        let signed = '\\+\\-';
-        let wsp = ' \\t\\n\\r';
-        let dash = `"'"`;
-        let backdash = "'\\\`'";
-        return `
+    }
+    function getFormulaStr(funcStr) {
+      let signed = '\\+\\-';
+      let wsp = ' \\t\\n\\r';
+      let dash = `"'"`;
+      let backdash = "'\\\`'";
+      return `
 
 // Simple Arithmetics Grammar
 // ==========================
@@ -572,8 +645,8 @@ _
 = [${wsp}]*
   
 `;
-      }
-})(console,
+    }
+  })(console,
   typeof (peg) === 'undefined'
     ? { generate: function () { return { parse: function () { } } } }
     : peg
