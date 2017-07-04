@@ -166,7 +166,7 @@
         config.rentaku.rules.push(text);
 
         console.log(text);
-        
+
         let depend = [];
         depend = depend.concat(formulaDep);
         depend = depend.concat(condDep);
@@ -196,88 +196,177 @@
         let checked = {};
         setStart(config.rentaku.decls, config.depend, starts, checked);
         return;
-        
+
       }
       function setStart(decls, depend, starts, checked) {
-          // clear
-          for (let di = 0; di < decls.length; di++) {
-            let decl = decls[di];
-            if (decl in starts) {
-              delete starts[decl];
-            }
-            if (decl in checked) {
-              delete checked[decl];
-            }
+        // clear
+        for (let di = 0; di < decls.length; di++) {
+          let decl = decls[di];
+          if (decl in starts) {
+            delete starts[decl];
           }
-          for (let di = 0; di < decls.length; di++) {
-            let decl = decls[di];
-            if (!(decl in depend)) {
-              starts[decl] = 0;
-            }
+          if (decl in checked) {
+            delete checked[decl];
           }
-          let tmp = {};
-          for (let di = 0; di < decls.length; di++) {
-            let outs = [];
-            let decl = decls[di];
-            setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
-            let maxout = 0;
-            for (let oi = 0; oi < outs.length; oi++) {
-              maxout = Math.max(maxout, outs[oi]);
-            }
-            tmp[decl] = maxout;
+        }
+        for (let di = 0; di < decls.length; di++) {
+          let decl = decls[di];
+          if (!(decl in depend)) {
+            starts[decl] = 0;
           }
-          for (let decl in tmp) {
-            starts[decl] = tmp[decl];
+        }
+        let tmp = {};
+        for (let di = 0; di < decls.length; di++) {
+          let outs = [];
+          let decl = decls[di];
+          setStartRepeat(0, decls.length, [decl], depend, starts, [0], outs);
+          let maxout = 0;
+          for (let oi = 0; oi < outs.length; oi++) {
+            maxout = Math.max(maxout, outs[oi]);
           }
-          return;
+          tmp[decl] = maxout;
+        }
+        for (let decl in tmp) {
+          starts[decl] = tmp[decl];
+        }
+        return;
 
-          function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
-            if (decls.length === 0) {
-              return;
-            }
-            if (depth > maxdepth) {
-              throw 'loop detected:' + depth;
-            }
-            for (let di = 0; di < decls.length; di++) {
-              let nextins = [];
-              let decl = decls[di];
-              let array = [];
-              for (let dk in depend[decl]) {
-                if (dk in starts) {
-                  outs.push(ins[di] + depend[decl][dk]);
-                } else {
-                  array.push(dk);
-                  nextins.push(ins[di] + depend[decl][dk]);
-                }
+        function setStartRepeat(depth, maxdepth, decls, depend, starts, ins, outs) {
+          if (decls.length === 0) {
+            return;
+          }
+          if (depth > maxdepth) {
+            throw 'loop detected:' + depth;
+          }
+          for (let di = 0; di < decls.length; di++) {
+            let nextins = [];
+            let decl = decls[di];
+            let array = [];
+            for (let dk in depend[decl]) {
+              if (dk in starts) {
+                outs.push(ins[di] + depend[decl][dk]);
+              } else {
+                array.push(dk);
+                nextins.push(ins[di] + depend[decl][dk]);
               }
-              setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
             }
+            setStartRepeat(depth + 1, maxdepth, array, depend, starts, nextins, outs);
           }
         }
-        function test() {
-          let decls = ['A','B'];
-          let depend = {
-            B: {A:10}
-          };
-          let starts = {};
-          let checked = {};
-          setStart(decls, depend, starts, checked);
-          console.log(starts);
-        }
+      }
+      /*
+      function getFormulaStr(funcStr) {
+        let signed = '\\+\\-';
+        let wsp = ' \\t\\n\\r';
+        let dash = `"'"`;
+        let backdash = "'\\\`'";
+        return `
+
+// Simple Arithmetics Grammar
+// ==========================
+//
+// Accepts expressions like "2 * (3 + 4)" and computes their value.
+{
+${funcStr}
+}
+
+Formula
+= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
+/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
+
+
+FuncTerm
+= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
+/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
+/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
+
+Term
+= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
+
+Factor
+= _ '(' expr:Formula ')' { return expr; }
+  / UnsignedNumber
+  / SysOperatedDoller
+  / SysOperatedHash
+  / SysOperatedDash
+  / seq:Sequence { return val(seq,0,now()); }
+
+SysOperatedDash
+= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
+/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
+
+SysOperatedDoller
+= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
+
+SysOperatedHash
+= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
+
+SysIndex
+= _ '{' signed:SignedInt '}'
+{
+  return parseInt(signed,10);
+}
+/ _ unsinged:_UnsignedInt
+{
+  return parseInt(unsinged,10);
+}
+
+Sequence 
+= _ [A-Z]+ _ { return self();}
+
+UnsignedNumber
+= _ $( _UnsignedFloat / _UnsignedInt) _
+{
+  return parseFloat(text());
+}
+
+_UnsignedFloat
+= _UnsignedInt '.' [0-9]*
+/ '.' [0-9]+
+
+SignedInt
+= _ [${signed}] _UnsignedInt _
+/ _UnsignedInt
+
+_UnsignedInt
+= '0'
+/ [1-9] [0-9]*
+
+_
+= [${wsp}]*
+  
+`;
+      }
+      */
+      function test() {
+        let decls = ['A', 'B'];
+        let depend = {
+          B: { A: 10 }
+        };
+        let starts = {};
+        let checked = {};
+        setStart(decls, depend, starts, checked);
+        console.log(starts);
+      }
     }
   };
   // uncomment for test
   //(param.func())();
-
-  let funcStr = JSON.stringify(param.func, replacer);
-  funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
-  //console.log(funcStr);
-  function replacer(k, v) {
-    if (typeof v === 'function') { return v.toString(); };
-    return v;
-  }
+/*
   let formulaStr = getFormulaStr(funcStr);
   param.formulaParser = peg.generate(formulaStr);
+  */
+  let funcStr = JSON.stringify(param.func, replacer);
+  funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
+  let pegStr = JSON.stringify(peg, replacer);
+  console.log(pegStr);
+  function replacer(k, v) {
+    if (typeof v === 'function') { return v.toString(); };
+    if (typeof v === 'class') { return v.toString(); };
+    return v;
+  }
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
@@ -290,7 +379,7 @@
   [1][B]
   B @ 1` + '\n'));
 */
-  
+
   function getStatementStr(funcStr) {
 
     let signed = '\\+\\-';
@@ -303,6 +392,7 @@
 // ==========================
 //
 {
+let peg = ${pegStr}
 ${funcStr}
 }
 Statements
@@ -477,90 +567,6 @@ _UnsignedInt
 _
 = [${wsp}]*
   
-  
-`;
-  }
-  function getFormulaStr(funcStr) {
-    let signed = '\\+\\-';
-    let wsp = ' \\t\\n\\r';
-    let dash = `"'"`;
-    let backdash = "'`'";
-    return `
-
-// Simple Arithmetics Grammar
-// ==========================
-//
-// Accepts expressions like "2 * (3 + 4)" and computes their value.
-{
-${funcStr}
-}
-
-Formula
-= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
-/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
-
-
-FuncTerm
-= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
-/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
-/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
-
-Term
-= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
-
-Factor
-= _ '(' expr:Formula ')' { return expr; }
-  / UnsignedNumber
-  / SysOperatedDoller
-  / SysOperatedHash
-  / SysOperatedDash
-  / seq:Sequence { return val(seq,0,now()); }
-
-SysOperatedDash
-= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
-/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
-
-SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
-/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysOperatedHash
-= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
-/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysIndex
-= _ '{' signed:SignedInt '}'
-{
-  return parseInt(signed,10);
-}
-/ _ unsinged:_UnsignedInt
-{
-  return parseInt(unsinged,10);
-}
-
-Sequence 
-= _ [A-Z]+ _ { return self();}
-
-UnsignedNumber
-= _ $( _UnsignedFloat / _UnsignedInt) _
-{
-  return parseFloat(text());
-}
-
-_UnsignedFloat
-= _UnsignedInt '.' [0-9]*
-/ '.' [0-9]+
-
-SignedInt
-= _ [${signed}] _UnsignedInt _
-/ _UnsignedInt
-
-_UnsignedInt
-= '0'
-/ [1-9] [0-9]*
-
-_
-= [${wsp}]*
   
 `;
   }
