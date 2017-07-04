@@ -2,6 +2,8 @@
 (function (console, peg) {
   let config = {
     func: function () {
+      return test;
+
       let param = {
         limit: {
           count: 0,
@@ -21,7 +23,6 @@
         },
         depend: {},
       }
-      return test;
       function now() {
         return 0;
       }
@@ -166,7 +167,6 @@
 
         console.log(text);
         
-        param.depend[decl] = {};
         let depend = [];
         depend = depend.concat(formulaDep);
         depend = depend.concat(condDep);
@@ -177,6 +177,9 @@
           }
           let name = depend[di].name;
           if (name !== decl) {
+            if (!(decl in param.depend)) {
+              param.depend[decl] = {};
+            }
             if (!(name in param.depend[decl])) {
               param.depend[decl][name] = 0;
             }
@@ -191,9 +194,7 @@
       function processStatements() {
         let starts = {};
         let checked = {};
-        console.log(param.depend);
-        setStart(param.rentaku.decls, starts, checked);
-        console.log(starts);
+        setStart(param.rentaku.decls, param.depend, starts, checked);
         return;
         
       }
@@ -256,7 +257,6 @@
         function test() {
           let decls = ['A','B'];
           let depend = {
-            A: {},
             B: {A:10}
           };
           let starts = {};
@@ -266,9 +266,11 @@
         }
     }
   };
-  (config.func())();
+  // uncomment for test
+  //(config.func())();
+
   let funcStr = JSON.stringify(config.func, replacer);
-  funcStr = funcStr.replace(/^"function \(\) {\\n/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
+  funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
   //console.log(funcStr);
 
   let formulaStr = getFormulaStr(funcStr);
@@ -283,6 +285,7 @@
   */
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
+
   console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
   B @ A# 
   C @ B#` + '\n'));
