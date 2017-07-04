@@ -1,4 +1,7 @@
 'use strict';
+let global={
+  
+};
 (function (console, peg) {
   let param = {
     func: function () {
@@ -195,8 +198,10 @@
         let starts = {};
         let checked = {};
         setStart(config.rentaku.decls, config.depend, starts, checked);
-        return;
 
+        console.log(global.formulaParser.parse('1+1'));
+
+        return;
       }
       function setStart(decls, depend, starts, checked) {
         // clear
@@ -254,92 +259,6 @@
           }
         }
       }
-      /*
-      function getFormulaStr(funcStr) {
-        let signed = '\\+\\-';
-        let wsp = ' \\t\\n\\r';
-        let dash = `"'"`;
-        let backdash = "'\\\`'";
-        return `
-
-// Simple Arithmetics Grammar
-// ==========================
-//
-// Accepts expressions like "2 * (3 + 4)" and computes their value.
-{
-${funcStr}
-}
-
-Formula
-= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
-/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
-
-
-FuncTerm
-= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
-/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
-/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
-
-Term
-= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
-
-Factor
-= _ '(' expr:Formula ')' { return expr; }
-  / UnsignedNumber
-  / SysOperatedDoller
-  / SysOperatedHash
-  / SysOperatedDash
-  / seq:Sequence { return val(seq,0,now()); }
-
-SysOperatedDash
-= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
-/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
-
-SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
-/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysOperatedHash
-= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
-/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysIndex
-= _ '{' signed:SignedInt '}'
-{
-  return parseInt(signed,10);
-}
-/ _ unsinged:_UnsignedInt
-{
-  return parseInt(unsinged,10);
-}
-
-Sequence 
-= _ [A-Z]+ _ { return self();}
-
-UnsignedNumber
-= _ $( _UnsignedFloat / _UnsignedInt) _
-{
-  return parseFloat(text());
-}
-
-_UnsignedFloat
-= _UnsignedInt '.' [0-9]*
-/ '.' [0-9]+
-
-SignedInt
-= _ [${signed}] _UnsignedInt _
-/ _UnsignedInt
-
-_UnsignedInt
-= '0'
-/ [1-9] [0-9]*
-
-_
-= [${wsp}]*
-  
-`;
-      }
-      */
       function test() {
         let decls = ['A', 'B'];
         let depend = {
@@ -354,14 +273,14 @@ _
   };
   // uncomment for test
   //(param.func())();
-/*
-  let formulaStr = getFormulaStr(funcStr);
-  param.formulaParser = peg.generate(formulaStr);
-  */
+
+
   let funcStr = JSON.stringify(param.func, replacer);
   funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
-  let pegStr = JSON.stringify(peg, replacer);
-  console.log(pegStr);
+
+  let formulaStr = getFormulaStr(funcStr);
+  global.formulaParser = peg.generate(formulaStr);
+
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
     if (typeof v === 'class') { return v.toString(); };
@@ -373,6 +292,7 @@ _
   console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
   B @ A# 
   C @ B#` + '\n'));
+
   /*
   console.log(statementParser.parse(`A @ B# + 1 
   +2 | A=B
@@ -392,7 +312,6 @@ _
 // ==========================
 //
 {
-let peg = ${pegStr}
 ${funcStr}
 }
 Statements
@@ -570,6 +489,90 @@ _
   
 `;
   }
+  function getFormulaStr(funcStr) {
+        let signed = '\\+\\-';
+        let wsp = ' \\t\\n\\r';
+        let dash = `"'"`;
+        let backdash = "'\\\`'";
+        return `
+
+// Simple Arithmetics Grammar
+// ==========================
+//
+// Accepts expressions like "2 * (3 + 4)" and computes their value.
+{
+${funcStr}
+}
+
+Formula
+= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
+/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
+
+
+FuncTerm
+= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
+/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
+/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
+
+Term
+= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
+
+Factor
+= _ '(' expr:Formula ')' { return expr; }
+  / UnsignedNumber
+  / SysOperatedDoller
+  / SysOperatedHash
+  / SysOperatedDash
+  / seq:Sequence { return val(seq,0,now()); }
+
+SysOperatedDash
+= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
+/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
+
+SysOperatedDoller
+= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
+
+SysOperatedHash
+= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
+
+SysIndex
+= _ '{' signed:SignedInt '}'
+{
+  return parseInt(signed,10);
+}
+/ _ unsinged:_UnsignedInt
+{
+  return parseInt(unsinged,10);
+}
+
+Sequence 
+= _ [A-Z]+ _ { return self();}
+
+UnsignedNumber
+= _ $( _UnsignedFloat / _UnsignedInt) _
+{
+  return parseFloat(text());
+}
+
+_UnsignedFloat
+= _UnsignedInt '.' [0-9]*
+/ '.' [0-9]+
+
+SignedInt
+= _ [${signed}] _UnsignedInt _
+/ _UnsignedInt
+
+_UnsignedInt
+= '0'
+/ [1-9] [0-9]*
+
+_
+= [${wsp}]*
+  
+`;
+      }
 })(console,
   typeof (peg) === 'undefined'
     ? { generate: function () { return { parse: function () { } } } }
