@@ -158,19 +158,12 @@
           return ret;
         }
       }
-      function processStatement(seq, formula, argvs, text) {
+      function processStatement(seq, formula, cond, argvs, text) {
         let decl = seq[0].name;
         param.rentaku.decls.push(decl);
+        param.rentaku.rules.push(text);
+
         console.log(text);
-        if ( /(^[^@]+)@([^\[]+)/.test(text) ) {
-          let rule = RegExp.$2;
-          let args = RegExp.$3;
-          param.rentaku.decls.push(rule);
-          let _args = (args.trim()+'[').split('][');
-          param.rentaku.argvs.push(_args);
-        } else {
-          throw 'format error';
-        }
         
         param.depend[decl] = {};
         let depend = [];
@@ -278,11 +271,14 @@
   */
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
+  console.log(statementParser.parse(`A @ A'+1 | A > 0 [0]
+  B @ A# ` + '\n'));
+  /*
   console.log(statementParser.parse(`A @ B# + 1 
   +2 | A=B
   [1][B]
   B @ 1` + '\n'));
-
+*/
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
     return v;
@@ -308,22 +304,41 @@ Statements
 }
 
 Statement
-= _ seq:Sequence _ '@' _ formula:Formula  ( _ '|' Condition )* _ argvs:('[' Formula ']' _ )*
+= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ']' _ )*
 {
-  processStatement(seq,formula,argvs,text());
+  let _cond = '';
+  if (cond && cond.length>0) {
+    _cond = cond[2].pop().text;
+  }
+  let _argvs = [];
+  for (let ai=0;ai<argvs.length;ai++) {
+    _argvs.push(argvs[ai][1].pop().text);
+  }
+  let condStr = '';
+  let argvsStr = '';
+  if (_cond.length>0) {
+    condStr = ' | '+_cond;
+  }
+  if (_argvs.length>0) {
+    argvsStr = ' ['+_argvs.join('][')+']';
+  }
+  let text = seq[0].name + ' @ '+ formula.pop().text + condStr + argvsStr;
+  processStatement(seq,formula, cond, argvs, text);
 }
 
 Condition
 = head:FuncCondTerm tail:(('and' / 'or') FuncCondTerm)*
 {
-  return processTail(head, tail);
+  let ret = processTail(head, tail);
+  ret.push({ text: text() });
+  return ret;
 }
 
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
   let ret = processTail(head, tail);
-  ret.push({text:text()});
+  ret.push({ text:text() });
   return ret;
 }
 / tail:(_ ('+' / '-') FuncTerm)* 
