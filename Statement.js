@@ -1,6 +1,6 @@
 'use strict';
 (function (console, peg) {
-  let global = {
+  let param = {
     func: function () {
       return test;
 
@@ -267,22 +267,17 @@
     }
   };
   // uncomment for test
-  //(global.func())();
+  //(param.func())();
 
-  let funcStr = JSON.stringify(global.func, replacer);
+  let funcStr = JSON.stringify(param.func, replacer);
   funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
   //console.log(funcStr);
-
+  function replacer(k, v) {
+    if (typeof v === 'function') { return v.toString(); };
+    return v;
+  }
   let formulaStr = getFormulaStr(funcStr);
-  //console.log(formulaStr);
-  global.formulaParser = peg.generate(formulaStr);
-  /*
-    console.log(global.formulaParser.parse('10 mod 4'));
-    console.log(global.formulaParser.parse('mod [10][4]'));
-    console.log(global.formulaParser.parse('not 4'));
-    console.log(global.formulaParser.parse('not [10]'));
-    //console.log(global.formulaParser.parse("A``'"));
-  */
+  param.formulaParser = peg.generate(formulaStr);
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
@@ -295,10 +290,7 @@
   [1][B]
   B @ 1` + '\n'));
 */
-  function replacer(k, v) {
-    if (typeof v === 'function') { return v.toString(); };
-    return v;
-  }
+  
   function getStatementStr(funcStr) {
 
     let signed = '\\+\\-';
