@@ -471,13 +471,21 @@ let config = {
 */
 console.log(config.starts);
 console.log(statementParser.parse(`
+A @ ' + 1 [0]
+B @ B' + 1 [0]
+D @ (D')+1 [0]
+E @ (')+1 [0]
+F @ -(F')+1 [0]
+G @ -(')+1 [0]
+`));
+  /*
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
 P @ PA/PB	
 H @ 11	
-G @ (2* P#)/H
-CB @  G*G / (2*A * (2*A-1)) [1]
+G @ 2* P#/H
+CB @ -' * G*G / (2*A * (2*A-1)) [1]
 C @ ' + CB [1]
 SB @ -(') * G*G / (2*A * (2*A+1)) [G#]
 S @ S' + SB [G#]
@@ -485,10 +493,7 @@ CN @ 2*C#* ' - ''  [C#] [1]
 SN @ 2*C#* ' - '' [S#*(-1)] [0]
 L	@ 20
 R @ 1
-`));
-  /*
 
-CB @ -(') * G*G / (2*A * (2*A-1)) [1]
 PX @ '-L*(CN) | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
 
@@ -563,7 +568,9 @@ Formula
 }
 / tail:(_ ('+' / '-') FuncTerm)* 
 {
-  return processTail(null, tail);
+  let ret = processTail(null, tail);
+  ret.push({ text:text() });
+  return ret;
 }
 
 FuncCondTerm
