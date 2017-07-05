@@ -24,7 +24,11 @@ let config = {
       return test;
 
       function now() {
-        return config.state.now;
+        return config.state.now % config.max;
+      }
+      function getRidx(_ridx) {
+        return (_ridx + config.max * 10) % config.max;
+        
       }
       function getCidx(obj, _cidx) {
         var cidx = 0;
@@ -43,34 +47,34 @@ let config = {
           return obj.values[cidx][now()];
         }
         if (ridx >= 0) {
-          return obj.values[cidx][ridx];
+          return obj.values[cidx][getRidx(ridx)];
         } else {
-          return obj.inits[cidx][obj.inits[cidx].length + ridx];
+          return obj.inits[cidx][getRidx(obj.inits[cidx].length + ridx)];
         }
       }
-      function vallen(obj) {
+      function lastval(obj) {
         if (obj.values.length===0) {
-          return 0;
+          return null;
         } else {
           // TODO: in case of non 0
-          let idx = obj.values[0].indexOf(null);
+          let idx = obj.values[0].lastIndexOf(null);
           if (idx===-1) {
-            return obj.values[0].length;
+            return obj.values[0][obj.values.length-1];
           } else {
-            return idx;
+            return obj.values[0][idx-1];
           }
         }
       }
-      function inilen(obj) {
+      function lastini(obj) {
         if (obj.inits.length===0) {
           return 0;
         } else {
           // TODO: in case of non 0
-          let idx = obj.inits[0].lastIndexOf(null);
+          let idx = obj.inits[0].indexOf(null);
           if (idx===-1) {
-            return obj.inits[0].length;
+            return obj.inits[0][obj.inits.length-1];
           } else {
-            return idx;
+            return obj.inits[0][idx-1];
           }
         }
       }
@@ -174,12 +178,12 @@ let config = {
         var arg = idx;
         if (op === '#') {
           if (arg === null) {
-            return vallen(seq);
+            return lastval(seq);
           }
           return val(seq, 0, arg);
         } else {
           if (arg === null) {
-            return inilen(seq);
+            return lastini(seq);
           }
           return ini(seq, 0, arg);
         }
@@ -460,11 +464,34 @@ let config = {
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
+/*
   console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
   B @ A# 
   C @ B#` + '\n'));
-
+*/
+console.log(config.starts);
+console.log(statementParser.parse(`
+A	 @ '+1 [0]
+PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
+PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
+P @ PA/PB	
+H @ 11	
+G @ (2* P#)/H
+CB @  G*G / (2*A * (2*A-1)) [1]
+C @ ' + CB [1]
+SB @ -(') * G*G / (2*A * (2*A+1)) [G#]
+S @ S' + SB [G#]
+CN @ 2*C#* ' - ''  [C#] [1]
+SN @ 2*C#* ' - '' [S#*(-1)] [0]
+L	@ 20
+R @ 1
+`));
   /*
+
+CB @ -(') * G*G / (2*A * (2*A-1)) [1]
+PX @ '-L*(CN) | A <= H*R [0]
+PY @ ' + L * SN | A <= H*R [0]
+
   console.log(statementParser.parse(`A @ B# + 1 
   +2 | A=B
   [1][B]
@@ -769,6 +796,6 @@ _
   }
 })(console,
   typeof (peg) === 'undefined'
-    ? { generate: function () { return { parse: function () { } } } }
+    ? { generate: function () { return require("pegjs"); } }
     : peg
   );
