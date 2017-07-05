@@ -45,15 +45,34 @@ let config = {
         if (ridx >= 0) {
           return obj.values[cidx][ridx];
         } else {
-          console.log(obj);
           return obj.inits[cidx][obj.inits[cidx].length + ridx];
         }
       }
       function vallen(obj) {
-        return obj.values[0].length;
+        if (obj.values.length===0) {
+          return 0;
+        } else {
+          // TODO: in case of non 0
+          let idx = obj.values[0].indexOf(null);
+          if (idx===-1) {
+            return obj.values[0].length;
+          } else {
+            return idx;
+          }
+        }
       }
       function inilen(obj) {
-        return obj.inits[0].length;
+        if (obj.inits.length===0) {
+          return 0;
+        } else {
+          // TODO: in case of non 0
+          let idx = obj.inits[0].lastIndexOf(null);
+          if (idx===-1) {
+            return obj.inits[0].length;
+          } else {
+            return idx;
+          }
+        }
       }
       function ini(obj, _cidx, ridx) {
         var cidx = getCidx(obj, _cidx);
@@ -79,7 +98,7 @@ let config = {
       }
       function processFuncCond(head, tail) {
         return tail.reduce(function (result, element) {
-          let func = element[1].join('');
+          let func = element[1];
           // TODO: dynamic func operator
           if (func === '<') { return result < element[2]; }
           if (func === '<=') { return result <= element[2]; }
@@ -88,6 +107,18 @@ let config = {
           if (func === '>=') { return result >= element[2]; }
           if (func === '<>') { return result !== element[2]; }
         }, head);
+      }
+      function processFuncCondEx(func, aidx, _args) {
+        let args = [];
+        if (aidx === null) {
+          args.push(_args);
+        } else {
+          for (let ai = 0; ai < _args.length; ai++) {
+            args.push(_args[ai][aidx]);
+          }
+        }
+        // TODO:
+        return 0;
       }
       function processFunc(head, tail) {
         return tail.reduce(function (result, element) {
@@ -143,7 +174,6 @@ let config = {
         var arg = idx;
         if (op === '#') {
           if (arg === null) {
-            console.log(seq);
             return vallen(seq);
           }
           return val(seq, 0, arg);
@@ -156,13 +186,13 @@ let config = {
       }
       function processTail(head, tail) {
         let ret = [];
-        for (let ti = 0; ti < tail.length; ti++) {
-          if (tail[ti][2][0]) {
-            ret.push(tail[ti][2][0]);
-          }
+        if (head !== null && typeof(head)!=='undefined') {
+          ret = ret.concat(head);
         }
-        if (head !== null) {
-          ret.unshift(head);
+        for (let ti = 0; ti < tail.length; ti++) {
+          if (tail[ti][2][0]!== null && typeof(tail[ti][2][0])!=='undefined') {
+            ret = ret.concat(tail[ti][2][0]);
+          }
         }
         return ret;
       }
@@ -241,8 +271,6 @@ let config = {
         }
       }
       function processStatements() {
-        console.log(config.depend);
-        console.log(config.starts);
         setStart(config.decls, config.depend, config.starts);
         run();
         console.log(config.iteraita);
@@ -340,20 +368,14 @@ let config = {
         iter.values.push([]);
       }
       function appendRow(iter, cidx) {
-        if (iter.condition.toString().trim().length>0) {
-          console.log(iter.condition);
+        if (iter.condition.length>0) {
           let cond = config.formulaParser.parse(iter.condition,{startRule:'Condition'});
-          console.log(cond);
-          if (cond!==1) {
+          if (!cond) {
             iter.values[cidx].push(null);
             return;
           } 
         }
-        console.log(config.state.now);
-        console.log(iter);
-        console.log(config.depend);
         let val = config.formulaParser.parse(iter.formula);
-        console.log(val);
         iter.values[cidx].push(val);
       }
       function setStart(decls, depend, starts) {
@@ -498,7 +520,7 @@ Statement
 }
 
 Condition
-= head:FuncCondTerm tail:(('and' / 'or') FuncCondTerm)*
+= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)*
 {
   let ret = processTail(head, tail);
   ret.push({ text: text() });
@@ -509,7 +531,6 @@ Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
   let ret = processTail(head, tail);
-  console.log(ret);
   ret.push({ text:text() });
   return ret;
 }
@@ -670,15 +691,16 @@ Condition
 FuncCondTerm
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / [a-z]+ ) Term)+
 {
-  return processFuncCond(head, tail);
+  let ret = processFuncCond(head, tail);
+  return ret;
 }
 / _ op:[a-z]+ _ args:Term 
 {
-  return processFuncCond(null, args);
+  return processFuncCondEx(op.join(''), null, args);
 }
 / _ op:[a-z]+ tail:(_ '[' Term ']')* 
 {
-  return processFuncCond(null, tail);
+  return processFuncCondEx(op.join(''),2, tail);
 }
 
 FuncTerm
