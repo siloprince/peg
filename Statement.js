@@ -59,6 +59,12 @@ let config = {
         var cidx = getCidx(obj, _cidx);
         return obj.inits[cidx][obj.inits[cidx].length - ridx - 1];
       }
+      function processAndOr(head, tail) {
+        return tail.reduce(function (result, element) {
+          if (element[1] === 'and') { return result && element[2]; }
+          if (element[1] === 'or') { return result || element[2]; }
+        }, head);
+      }
       function processAddSub(head, tail) {
         return tail.reduce(function (result, element) {
           if (element[1] === '+') { return result + element[2]; }
@@ -71,9 +77,22 @@ let config = {
           if (element[1] === '/') { return result / element[2]; }
         }, head);
       }
+      function processFuncCond(head, tail) {
+        return tail.reduce(function (result, element) {
+          let func = element[1].join('');
+          // TODO: dynamic func operator
+          if (func === '<') { return result < element[2]; }
+          if (func === '<=') { return result <= element[2]; }
+          if (func === '=') { return result === element[2]; }
+          if (func === '>') { return result > element[2]; }
+          if (func === '>=') { return result >= element[2]; }
+          if (func === '<>') { return result !== element[2]; }
+        }, head);
+      }
       function processFunc(head, tail) {
         return tail.reduce(function (result, element) {
           let func = element[1].join('');
+          // TODO: dynamic func operator
           if (func === 'mod') { return result % element[2]; }
         }, head);
       }
@@ -121,14 +140,15 @@ let config = {
         return val(seq, cidx, ridx);
       }
       function processHashDoller(seq, idx, op) {
-        var arg = idx[0];
+        var arg = idx;
         if (op === '#') {
-          if (typeof (arg) === 'undefined') {
+          if (arg === null) {
+            console.log(seq);
             return vallen(seq);
           }
           return val(seq, 0, arg);
         } else {
-          if (typeof (arg) === 'undefined') {
+          if (arg === null) {
             return inilen(seq);
           }
           return ini(seq, 0, arg);
@@ -142,10 +162,9 @@ let config = {
           }
         }
         if (head !== null) {
-          return head.concat(ret);
-        } else {
-          return ret;
+          ret.unshift(head);
         }
+        return ret;
       }
       function processStatement(seq, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
         let decl = seq[0].name;
@@ -296,8 +315,10 @@ let config = {
                     }
                     if (varis.length>0) {
                       for (let vi = 0; vi < varis.length; vi++) {
-                        let vari = varis[vi].name;
-                        varimax = Math.max(varimax, config.iteraita[vari].values.length);
+                        if ('name' in varis[vi]) {
+                          let vari = varis[vi].name;
+                          varimax = Math.max(varimax, config.iteraita[vari].values.length);
+                        }
                       }
                     }
                     for (let vi = 0; vi < varimax; vi++) {
@@ -320,12 +341,17 @@ let config = {
       }
       function appendRow(iter, cidx) {
         if (iter.condition.toString().trim().length>0) {
-          let cond = config.formulaParser.parse(iter.condition);
+          console.log(iter.condition);
+          let cond = config.formulaParser.parse(iter.condition,{startRule:'Condition'});
+          console.log(cond);
           if (cond!==1) {
             iter.values[cidx].push(null);
             return;
           } 
         }
+        console.log(config.state.now);
+        console.log(iter);
+        console.log(config.depend);
         let val = config.formulaParser.parse(iter.formula);
         console.log(val);
         iter.values[cidx].push(val);
@@ -338,6 +364,7 @@ let config = {
             delete starts[decl];
           }
         }
+        
         for (let di = 0; di < decls.length; di++) {
           let decl = decls[di];
           if (!(decl in depend)) {
@@ -389,7 +416,7 @@ let config = {
           B: { A: 10 }
         };
         setStart(decls, depend, config.starts);
-        console.log(starts);
+        console.log(config.starts);
       }
     }
   };
@@ -401,7 +428,7 @@ let config = {
   funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
 
   let formulaStr = getFormulaStr(funcStr);
-  config.formulaParser = peg.generate(formulaStr);
+  config.formulaParser = peg.generate(formulaStr,{allowedStartRules:['Formula','Condition']});
 
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
@@ -411,7 +438,7 @@ let config = {
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
 
-  console.log(statementParser.parse(`A @ A'+A'' [0][1]
+  console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
   B @ A# 
   C @ B#` + '\n'));
 
@@ -444,9 +471,6 @@ Statements
 
 Statement
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
-/*
-= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ']' _ )*
-*/
 {
   let _condStr = '';
   let _cond = [];
@@ -485,6 +509,7 @@ Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
   let ret = processTail(head, tail);
+  console.log(ret);
   ret.push({ text:text() });
   return ret;
 }
@@ -494,7 +519,7 @@ Formula
 }
 
 FuncCondTerm
-= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / [a-z]+ ) Term)* 
+= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) Term)+
 {
   return processTail(head, tail);
 }
@@ -508,7 +533,7 @@ FuncCondTerm
 }
 
 FuncTerm
-= head:Term tail:(_ [a-z]+ Term)* 
+= head:Term tail:(_ [a-z]+ Term)*
 {
   return processTail(head, tail);
 }
@@ -520,6 +545,7 @@ FuncTerm
 {
   return processTail(null, tail);
 }
+
 Term
 = head:Factor tail:(_ ('*' / '/') Factor )* 
 {
@@ -548,7 +574,7 @@ SysOperatedDash
 }
 
 SysOperatedDoller
-= seq:Sequence _ '$' idx:SysIndex*
+= seq:Sequence _ '$' idx:SysIndex?
 {
     return [{
       type: 'seqend',
@@ -561,7 +587,7 @@ SysOperatedDoller
 }
 
 SysOperatedHash
-= seq:Sequence _ '#' idx:SysIndex* 
+= seq:Sequence _ '#' idx:SysIndex? 
 {
     return [{
       type: 'seqend',
@@ -635,6 +661,26 @@ Formula
 / tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
 
 
+Condition
+= head:FuncCondTerm tail:(('and' / 'or') FuncCondTerm)*
+{
+  return processAndOr(head, tail);
+}
+
+FuncCondTerm
+= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / [a-z]+ ) Term)+
+{
+  return processFuncCond(head, tail);
+}
+/ _ op:[a-z]+ _ args:Term 
+{
+  return processFuncCond(null, args);
+}
+/ _ op:[a-z]+ tail:(_ '[' Term ']')* 
+{
+  return processFuncCond(null, tail);
+}
+
 FuncTerm
 = head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
 / tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
@@ -656,11 +702,11 @@ SysOperatedDash
 / tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
 
 SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+= seq:Sequence _ op:'$' idx:SysIndex? { return processHashDoller (seq, idx, op); }
 / _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
 
 SysOperatedHash
-= seq:Sequence _ op:'#' idx:SysIndex* { return processHashDoller (seq, idx, op); }
+= seq:Sequence _ op:'#' idx:SysIndex? { return processHashDoller (seq, idx, op); }
 / _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
 
 SysIndex
