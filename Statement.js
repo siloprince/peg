@@ -221,7 +221,18 @@ let config = {
         calcDepend(decl, formulaDep, condDep, argvsDepArray,argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
-          if (argvsDepArray[ai].length===0) {
+          let constarg = true;
+          for(let aj=0; aj< argvsDepArray[ai].length; aj++) {
+            if (argvsDepArray[ai].type!=='seqend') {
+              constarg = true;
+            }
+          }
+          for(let ak=0; ak< argvsCondDepArray[ai].length; ak++) {
+            if (argvsDepArray[ai].type!=='seqend') {
+              constarg = true;
+            }          
+          }
+          if (constarg) {
             continue;
           }
           let _decl = '_' + config.state.serial++;
@@ -303,14 +314,13 @@ let config = {
             config.state.self = decl;
             let iter = config.iteraita[decl];
             let argvs = iter.argvs;
-            let argvsDep = iter.argvsDep;
             if (config.starts[decl] <= i && i <= config.starts[decl] + config.max - 1) {
               if (config.starts[decl] === i) {
                 let sideArray = [];
                 let minSides = 0;
                 let constarg = true;
                 for (let ai = 0; ai < argvs.length; ai++) {
-                  if (argvsDep[ai].length === 0) {
+                  if (!(ai in config.iteraita[decl].sideSequences)) {
                     let str = argvs[ai];
                     let evaled = config.formulaParser.parse(str);
                     sideArray.push([evaled]);
