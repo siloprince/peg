@@ -3,6 +3,7 @@ let config = {
   state: { 
     self: null,
     now: 0,
+    serial: 0,
   },
   formulaParser: null,
   limit: {
@@ -14,7 +15,6 @@ let config = {
   max: 4,
   iteraita: {},
   decls: [],
-  serial: 0,
   depend: {},
 };
 
@@ -194,8 +194,10 @@ let config = {
           ret = ret.concat(head);
         }
         for (let ti = 0; ti < tail.length; ti++) {
-          if (tail[ti][2][0]!== null && typeof(tail[ti][2][0])!=='undefined') {
-            ret = ret.concat(tail[ti][2][0]);
+          for (let tj=0; tj< tail[ti][2].length; tj++) {
+            if (tail[ti][2][tj]!== null && typeof(tail[ti][2][tj])!=='undefined') {
+              ret = ret.concat(tail[ti][2][tj]);
+            }
           }
         }
         return ret;
@@ -219,7 +221,10 @@ let config = {
         calcDepend(decl, formulaDep, condDep, argvsDepArray,argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
-          let _decl = '_' + config.serial++;
+          if (argvsDepArray[ai].length===0) {
+            continue;
+          }
+          let _decl = '_' + config.state.serial++;
           config.decls.push(_decl);
           config.iteraita[decl].sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
@@ -471,12 +476,18 @@ let config = {
 */
 console.log(config.starts);
 console.log(statementParser.parse(`
-A @ ' + 1 [0]
-B @ B' + 1 [0]
-D @ (D')+1 [0]
-E @ (')+1 [0]
-F @ -(F')+1 [0]
-G @ -(')+1 [0]
+A	 @ '+1 [0]
+PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
+PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
+P @ PA/PB	
+H @ 11	
+G @ 2* P#/H
+CB @ -' * G*G / (2*A * (2*A-1)) [1]
+C @ ' + CB [1]
+SB @ -' * G*G / (2*A * (2*A+1)) [G#]
+S @ S' + SB [G#]
+CN @ 2*C#* ' - ''  [C#] [1]
+
 `));
   /*
 A	 @ '+1 [0]
@@ -487,7 +498,7 @@ H @ 11
 G @ 2* P#/H
 CB @ -' * G*G / (2*A * (2*A-1)) [1]
 C @ ' + CB [1]
-SB @ -(') * G*G / (2*A * (2*A+1)) [G#]
+SB @ -' * G*G / (2*A * (2*A+1)) [G#]
 S @ S' + SB [G#]
 CN @ 2*C#* ' - ''  [C#] [1]
 SN @ 2*C#* ' - '' [S#*(-1)] [0]
