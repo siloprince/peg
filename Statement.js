@@ -405,7 +405,9 @@ let config = {
       }
       function appendRow(iter, cidx) {
         if (iter.condition.length > 0) {
+
           config.parser.mode = true;
+          console.log('>> '+iter.condition);
           let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
@@ -414,7 +416,8 @@ let config = {
           }
         }
         config.parser.mode = true;
-        let val = config.parser.formula.parse(iter.formula);
+
+        let val = config.parser.formula.parse(iter.formula,{ startRule: 'Formula' });
         config.parser.mode = false;
         iter.values[cidx].push(val);
       }
@@ -503,10 +506,15 @@ let config = {
     B @ A# 
     C @ B#` + '\n'));
   */
-  console.log(config.depend);
-  console.log(config.starts);
   config.parser.mode = false;
-  console.log(statementParser.parse(`
+  statementParser.parse(`
+ B @ 1 | ((1=1) and (2=2))
+ C @ 1 | (((1=1)) and ((2=2)))
+
+  `);
+  /*
+   C @ 1 | (1=1) and (2=2)
+
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
@@ -523,9 +531,8 @@ L	@ 20
 R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
-LINE @ $3+1-($3 mod 1)  | 1=1 [PX'][PY'][PX][PY]
-`));
-  /*
+LINE @ $3+1-($3 mod 1) | ((1=1) and 2=2) [PX'][PY'][PX][PY]
+
 
   (($0-$2)*($0-$2)<0.0001)
   and
@@ -574,7 +581,7 @@ Statements
 }
 
 Statement
-= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
+= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' ConditionTop )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
 {
 
   if (config.parser.mode) {
@@ -603,6 +610,16 @@ Statement
   }
   let _formulaStr = formula.pop().text;
   processStatement(seq,formula, _cond, _argvsArray, _argvsCondArray, _formulaStr, _condStr,_argvsStrArray, _argvsCondStrArray);
+}
+
+ConditionTop
+= _ '(' _ cond:Condition _ ')'
+{
+  return cond;
+}
+/ _ cond:Condition
+{
+  return cond;
 }
 
 Condition
@@ -639,18 +656,18 @@ Formula
   }
 }
 
+
 FuncCondTerm
-/*
-= _ '(' head:Condition ')' { 
-  if (config.parser.mode) {
-    return;
-  } else {
-    let ret = processTail(head, null);
-    ret.push({ text: text() });  
-    //return expr; 
-  }
+= _ '(' _ cond:FuncCondTerm _ ')'
+{
+  return cond;
 }
-*/
+/ cond:FuncCondTermSub
+{
+  return cond;
+}
+
+FuncCondTermSub
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) Term)+
 {
   if (config.parser.mode) {
