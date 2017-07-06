@@ -63,12 +63,12 @@ let config = {
         if (obj.values.length === 0) {
           return null;
         } else {
-          // TODO: in case of non 0
-          let idx = obj.values[0].lastIndexOf(null);
+          let here = 0;
+          let idx = obj.values[here].lastIndexOf(null);
           if (idx === -1) {
-            return obj.values[0][obj.values.length - 1];
+            return obj.values[here][obj.values.length - 1];
           } else {
-            return obj.values[0][idx - 1];
+            return obj.values[here][idx - 1];
           }
         }
       }
@@ -76,18 +76,18 @@ let config = {
         if (obj.inits.length === 0) {
           return 0;
         } else {
-          // TODO: in case of non 0
-          let idx = obj.inits[0].indexOf(null);
+          let here = here();
+          let idx = obj.inits[here].indexOf(null);
           if (idx === -1) {
-            return obj.inits[0][obj.inits.length - 1];
+            return obj.inits[here][obj.inits.length - 1];
           } else {
-            return obj.inits[0][idx - 1];
+            return obj.inits[here][idx - 1];
           }
         }
       }
       function ini(obj, _cidx, ridx) {
         var cidx = getCidx(obj, _cidx);
-        return obj.inits[cidx][obj.inits[cidx].length - ridx - 1];
+        return obj.inits[cidx][ridx];
       }
       function processAndOr(head, tail) {
         return tail.reduce(function (result, element) {
