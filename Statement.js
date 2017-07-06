@@ -238,7 +238,6 @@ let config = {
             continue;
           }
           let _decl = '_' + config.state.serial++;
-          console.log(111111+' '+decl+' '+_decl);
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
             if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
               config.iteraita[decl].argvsDep.push([{ name: _decl, type: 'seqend_variargv' }]);
@@ -331,8 +330,6 @@ let config = {
       function processStatements() {
         setStart(config.decls, config.depend, config.starts);
         run();
-        console.log(JSON.stringify(config.depend));
-        console.log(config.starts);
         console.log(config.iteraita);
         return;
       }
