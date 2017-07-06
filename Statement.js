@@ -646,8 +646,12 @@ or
 {
 ${funcStr}
 }
+/*
+TODO:
+* multiple duplicate names
+*/
 Statements
-= Statement+ 
+= (Statement _ )+ 
 {
   if (config.parser.mode) {
     return;
@@ -655,8 +659,14 @@ Statements
   processStatements();
 }
 
+/* 
+TODO: 
+* multiple Conditions
+* Conditions without expr
+* function and operator definition with {}
+*/
 Statement
-= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
+= seq:Sequence _ '@' formula:Formula  cond:( _ '|' Condition )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
 {
 
   if (config.parser.mode) {
@@ -672,12 +682,15 @@ Statement
   let _argvsCondStrArray = [];
   let _argvsArray = [];
   let _argvsCondArray = [];
+  let formIdx = 2;
+  let condIdx = 3;
+  let condPlus = 2;
   for (let ai=0;ai<argvs.length;ai++) {
-    _argvsStrArray.push(argvs[ai][1].pop().text);
-    _argvsArray.push(argvs[ai][1]);
-    if (argvs[ai][2]) {
-      _argvsCondStrArray.push(argvs[ai][2][2].pop().text);
-      _argvsCondArray.push(argvs[ai][2][2]);
+    _argvsStrArray.push(argvs[ai][formIdx].pop().text);
+    _argvsArray.push(argvs[ai][formIdx]);
+    if (argvs[ai][condIdx]) {
+      _argvsCondStrArray.push(argvs[ai][condIdx][condPlus].pop().text);
+      _argvsCondArray.push(argvs[ai][condIdx][condPlus]);
     } else {
       _argvsCondStrArray.push('');
       _argvsCondArray.push([]);
@@ -700,7 +713,7 @@ Condition
 }
 
 Formula
-= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
+= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)*  
 {
   if (config.parser.mode) {
     return processAddSub(head, tail);
@@ -710,7 +723,7 @@ Formula
     return ret;
   }
 }
-/ tail:(_ ('+' / '-') FuncTerm)* 
+/ tail:( _ ('+' / '-') FuncTerm)* 
 {
   if (config.parser.mode) {
     return processAddSub(0, tail);
@@ -723,7 +736,7 @@ Formula
 
 
 FuncCondTerm
-= _ '(' _ cond:Condition _ ')'
+= _ '(' cond:Condition _ ')'
 {
   return cond;
 }
@@ -742,7 +755,7 @@ FuncCondTermSub
     return processTail(head, tail);
   }
 }
-/ _ op:[a-z]+ _ args:Term 
+/ _ op:[a-z]+ args:Term 
 {
   if (config.parser.mode) {
     return processFuncCondEx(op.join(''), null, args);
@@ -750,7 +763,7 @@ FuncCondTermSub
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:(_ '[' Term ']')* 
+/ _ op:[a-z]+ tail:( _ '[' Term _ ']')* 
 {
   if (config.parser.mode) {
     return processFuncCondEx(op.join(''),2, tail);
@@ -760,7 +773,7 @@ FuncCondTermSub
 }
 
 FuncTerm
-= head:Term tail:(_ [a-z]+ Term)*
+= head:Term tail:( _ [a-z]+ Term)*
 {
   if (config.parser.mode) {
     return processFunc(head, tail);
@@ -768,7 +781,7 @@ FuncTerm
     return processTail(head, tail);
   }
 }
-/ _ op:[a-z]+ _ args:Term 
+/ _ op:[a-z]+ args:Term 
 {
   if (config.parser.mode) {
     return processFuncEx(op.join(''), null, args);
@@ -776,7 +789,7 @@ FuncTerm
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:(_ '[' Term ']')* 
+/ _ op:[a-z]+ tail:( _ '{' Term _ '}')* 
 {
   if (config.parser.mode) {
     return processFuncEx(op.join(''), 2, args);
@@ -786,7 +799,7 @@ FuncTerm
 }
 
 Term
-= head:Factor tail:(_ ('*' / '/') Factor )* 
+= head:Factor tail:( _ ('*' / '/') Factor )* 
 {
   if (config.parser.mode) {
     return processMulDiv(head, tail);
@@ -796,7 +809,7 @@ Term
 }
 
 Factor
-= _ '(' expr:Formula ')' { return expr; }
+= _ '(' expr:Formula _ ')' { return expr; }
   / UnsignedNumber
   / SysOperatedDoller
   / SysOperatedHash
@@ -811,7 +824,7 @@ Factor
   }
 
 SysOperatedDash
-= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ 
+= seq:Sequence tail:( _ [${dash}${backdash}] SysIndex*)+ 
 {
   if (config.parser.mode) {
     return processDash (seq,tail);
@@ -822,7 +835,7 @@ SysOperatedDash
     }];
   }
 }
-/ tail:(_ [${dash}${backdash}]  SysIndex*)+ 
+/ tail:( _ [${dash}${backdash}]  SysIndex*)+ 
 {
   if (config.parser.mode) {
     return processDash (self(),tail);
@@ -874,7 +887,7 @@ SysOperatedHash
 }
 
 SysIndex
-= _ '{' signed:SignedInt '}'
+= _ '{' signed:SignedInt _ '}'
 {
   return parseInt(signed,10);
 }
@@ -884,7 +897,7 @@ SysIndex
 }
 
 Sequence 
-= _ seq:[A-Z]+ _ { 
+= _ seq:[A-Z]+ { 
   if (config.parser.mode) {
     return config.iteraita[seq.join('')];
   } else { 
@@ -896,7 +909,7 @@ Sequence
 }
 
 UnsignedNumber
-= _ $( _UnsignedFloat / _UnsignedInt) _
+= _ $( _UnsignedFloat / _UnsignedInt)
 {
   if (config.parser.mode) {
     return parseFloat(text());
@@ -910,7 +923,7 @@ _UnsignedFloat
 / '.' [0-9]+
 
 SignedInt
-= _ [${signed}] _UnsignedInt _
+= _ [${signed}] _UnsignedInt
 / _UnsignedInt
 
 _UnsignedInt
