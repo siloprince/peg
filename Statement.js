@@ -226,12 +226,12 @@ let config = {
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constarg = true;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
-            if (argvsDepArray[ai][aj].type.indexOf('seqend') === -1) {
+            if (argvsDepArray[ai][aj].type==='seqend_variargv') {
               constarg = false;
             }
           }
           for (let ak = 0; ak < argvsCondDepArray[ai].length; ak++) {
-            if (argvsCondDepArray[ai][ak].type.indexOf('seqend') === -1) {
+            if (argvsCondDepArray[ai][ak].type==='seqend_variargv') {
               constarg = false;
             }
           }
@@ -267,7 +267,11 @@ let config = {
               for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
                 if ('type' in argvsDepArray[ai][aj]) {
                   // force seqend in case of argvs
-                  argvsDepArray[ai][aj].type = 'seqend_argvs';
+                  if (argvsDepArray[ai][aj].type==='seqend') {
+                    argvsDepArray[ai][aj].type = 'seqend_constargv';
+                  } else {
+                    argvsDepArray[ai][aj].type = 'seqend_variargv';
+                  }
                   depend.push(argvsDepArray[ai][aj]);
                 }
               }
@@ -278,7 +282,11 @@ let config = {
               for (let aj = 0; aj < argvsCondDepArray[ai].length; aj++) {
                 if ('type' in argvsCondDepArray[ai][aj]) {
                   // force seqend in case of argvs
-                  argvsCondDepArray[ai][aj].type = 'seqend_argvs';
+                  if (argvsCondDepArray[ai][aj].type==='seqend') {
+                    argvsCondDepArray[ai][aj].type = 'seqend_constargv';
+                  } else {
+                    argvsCondDepArray[ai][aj].type = 'seqend_variargv';
+                  }
                   depend.push(argvsCondDepArray[ai][aj]);
                 }
               }
@@ -354,12 +362,13 @@ let config = {
                       minSides = tmp.length;
                     }
                     sideArray.push(tmp);
+
+                    console.log(decl +'::'+_decl+ ':' + minSides);
                   }
                 }
                 if (constarg) {
                   minSides = 1;
                 }
-                //console.log(decl + ':' + minSides);
                 for (let mi = 0; mi < minSides; mi++) {
                   let tmpargv = [];
                   for (let ai = 0; ai < argvs.length; ai++) {
@@ -407,7 +416,6 @@ let config = {
         if (iter.condition.length > 0) {
 
           config.parser.mode = true;
-          console.log('>> '+iter.condition);
           let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
