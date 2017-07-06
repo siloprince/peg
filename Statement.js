@@ -319,7 +319,7 @@ let config = {
                 config.depend[decl][name] = 0;
               }
               if (depend[di].type.indexOf('seqend') === 0) {
-                config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
+                config.depend[decl][name] = Math.max(config.depend[decl][name], 1);
               } else {
                 config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
               }
@@ -329,13 +329,16 @@ let config = {
       }
       function processStatements() {
         setStart(config.decls, config.depend, config.starts);
-        run();
+        run(10);
         console.log(config.iteraita);
         return;
       }
-      function run(_limit) {
+      function run(_max,_limit) {
         if (_limit) {
           config.limit.value = _limit;
+        }
+        if (_max) {
+          config.max = _max;
         }
         config.limit.count = 0;
         let max = 0;
@@ -343,7 +346,7 @@ let config = {
           max = Math.max(max, config.starts[sk]);
         }
         // main loop
-        max += config.max;
+        max = (max+1)*config.max;
         for (let i = 0; i < max + config.max; i++) {
           config.state.now = i % max;
           for (let di = 0; di < config.decls.length; di++) {
@@ -351,8 +354,9 @@ let config = {
             config.state.self = decl;
             let iter = config.iteraita[decl];
             let argvs = iter.argvs;
-            if (config.starts[decl] <= i && i <= config.starts[decl] + config.max - 1) {
-              if (config.starts[decl] === i) {
+            let start = config.starts[decl]*config.max;
+            if (start <= i && i <= start + config.max - 1) {
+              if (start === i) {
                 let sideArray = [];
                 let minSides = 0;
                 let constargv = true;
