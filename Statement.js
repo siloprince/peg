@@ -47,6 +47,7 @@ let config = {
           return obj.values[cidx][now()];
         }
         if (ridx >= 0) {
+         console.log(obj);
           return obj.values[cidx][getRidx(ridx)];
         } else {
           return obj.inits[cidx][getRidx(obj.inits[cidx].length + ridx)];
@@ -223,13 +224,13 @@ let config = {
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constarg = true;
           for(let aj=0; aj< argvsDepArray[ai].length; aj++) {
-            if (argvsDepArray[ai].type!=='seqend') {
-              constarg = true;
+            if (argvsDepArray[ai][aj].type.indexOf('seqend')===-1) {
+              constarg = false;
             }
           }
           for(let ak=0; ak< argvsCondDepArray[ai].length; ak++) {
-            if (argvsDepArray[ai].type!=='seqend') {
-              constarg = true;
+            if (argvsCondDepArray[ai][ak].type.indexOf('seqend')===-1) {
+              constarg = false;
             }          
           }
           if (constarg) {
@@ -261,12 +262,24 @@ let config = {
           }
           if (argvsDepArray) {
             for (let ai = 0; ai < argvsDepArray.length; ai++) {
-              depend = depend.concat(argvsDepArray[ai]);
+              for (let aj=0;aj < argvsDepArray[ai].length; aj++) {
+                if ('type' in argvsDepArray[ai][aj]) {
+                  // force seqend in case of argvs
+                  argvsDepArray[ai][aj].type = 'seqend_argvs';
+                  depend.push(argvsDepArray[ai][aj]);
+                }
+              }
             }
           }
           if (argvsCondDepArray) {
             for (let ai = 0; ai < argvsCondDepArray.length; ai++) {
-              depend = depend.concat(argvsCondDepArray[ai]);
+             for (let aj=0;aj < argvsCondDepArray[ai].length; aj++) {
+                if ('type' in argvsCondDepArray[ai][aj]) {
+                  // force seqend in case of argvs
+                  argvsCondDepArray[ai][aj].type = 'seqend_argvs';
+                  depend.push(argvsCondDepArray[ai][aj]);
+                }
+              }
             }
           }
           for (let di = 0; di < depend.length; di++) {
@@ -281,7 +294,7 @@ let config = {
               if (!(name in config.depend[decl])) {
                 config.depend[decl][name] = 0;
               }
-              if (depend[di].type === 'seqend') {
+              if (depend[di].type.indexOf('seqend')===0) {
                 config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
               } else {
                 config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
@@ -331,12 +344,14 @@ let config = {
                     for (let ii = 0; ii < config.iteraita[_decl].values.length; ii++) {
                       tmp = tmp.concat(config.iteraita[_decl].values[ii]);
                     }
+                    console.log(_decl+' >>>>> '+minSides+ ' '+tmp+' << '+config.iteraita[_decl].values );
                     if (minSides) {
                       minSides = Math.min(minSides, tmp.length);
                     } else {
                       minSides = tmp.length;
                     }
                     sideArray.push(tmp);
+                    console.log(_decl+' '+minSides);
                   }
                 }
                 if (constarg) {
@@ -484,6 +499,7 @@ let config = {
   B @ A# 
   C @ B#` + '\n'));
 */
+console.log(config.depend);
 console.log(config.starts);
 console.log(statementParser.parse(`
 A	 @ '+1 [0]
@@ -494,12 +510,25 @@ H @ 11
 G @ 2* P#/H
 CB @ -' * G*G / (2*A * (2*A-1)) [1]
 C @ ' + CB [1]
-SB @ -' * G*G / (2*A * (2*A+1)) [G#]
+SB @ -2*' * G*G / (2*A * (2*A+1)) [G#]
 S @ S' + SB [G#]
-CN @ 2*C#* ' - ''  [C#] [1]
-
+CN @ 2*C#* ' - '' [0][0]
+SN @ 2*C#* ' - '' [-S#] [0]
+L	@ 20
+R @ 1
+PX @ '-L* CN | A <= H*R [0]
+PY @ ' + L * SN | A <= H*R [0]
+LINE @ $3+1- ($3 mod 1) [PX'][PY'][PX][PY]
 `));
   /*
+
+
+CN @ 2*C#* ' - ''  [C#] [1]
+  | 
+  or(and(($0-$2)*($0-$2)<0.0001 and A=$2+1-mod($2+1,1)),and(($1-$3)*($1-$3)<0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0)) } $3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1))+1-mod($3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1)),1) | { and(($0-$2)*($0-$2)>=0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0) } 
+| 
+  or(and(($0-$2)*($0-$2)<0.0001 and A=$2+1-mod($2+1,1)),and(($1-$3)*($1-$3)<0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0)) } $3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1))+1-mod($3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1)),1) | { and(($0-$2)*($0-$2)>=0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0) } 
+
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
