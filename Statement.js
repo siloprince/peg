@@ -206,22 +206,6 @@ let config = {
         return ret;
       }
       function processStatement(seq, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
-        let decl = seq[0].name;
-        config.decls.push(decl);
-        config.iteraita[decl] = {
-          inits: [],
-          values: [],
-          formula: formulaStr,
-          condition: condStr,
-          argvs: argvsStrArray,
-          argvsCondition: argvsCondStrArray,
-          formulaDep: formulaDep,
-          conditionDep: condDep,
-          argvsDep: argvsDepArray,
-          argvsConditionDep: argvsCondDepArray,
-          sideSequences: [],
-        };
-        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
@@ -239,6 +223,18 @@ let config = {
             continue;
           }
           let _decl = '_' + config.state.serial++;
+          /*
+          for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
+            if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
+              argvsDepArray.push({ name: _decl, type: 'seqend_variargv' });
+            }
+          }
+          for (let ak = 0; ak < argvsCondDepArray[ai].length; ak++) {
+            if (argvsCondDepArray[ai][ak].type === 'seqend_variargv') {
+              argvsCondDepArray.push({ name: _decl, type: 'seqend_variargv' });
+            }
+          } 
+          */         
           config.decls.push(_decl);
           config.iteraita[decl].sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
@@ -255,6 +251,23 @@ let config = {
           };
           calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
         }
+        let decl = seq[0].name;
+        config.decls.push(decl);
+        config.iteraita[decl] = {
+          inits: [],
+          values: [],
+          formula: formulaStr,
+          condition: condStr,
+          argvs: argvsStrArray,
+          argvsCondition: argvsCondStrArray,
+          formulaDep: formulaDep,
+          conditionDep: condDep,
+          argvsDep: argvsDepArray,
+          argvsConditionDep: argvsCondDepArray,
+          sideSequences: [],
+        };
+        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
+
         return;
         function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
           let depend = [];
