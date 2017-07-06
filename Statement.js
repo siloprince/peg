@@ -1,11 +1,14 @@
 'use strict';
 let config = {
-  state: { 
+  state: {
     self: null,
     now: 0,
     serial: 0,
   },
-  formulaParser: null,
+  parser: {
+    mode: false,
+    formula: null
+  },
   limit: {
     count: 0,
     values: 10000,
@@ -28,7 +31,7 @@ let config = {
       }
       function getRidx(_ridx) {
         return (_ridx + config.max * 10) % config.max;
-        
+
       }
       function getCidx(obj, _cidx) {
         var cidx = 0;
@@ -53,28 +56,28 @@ let config = {
         }
       }
       function lastval(obj) {
-        if (obj.values.length===0) {
+        if (obj.values.length === 0) {
           return null;
         } else {
           // TODO: in case of non 0
           let idx = obj.values[0].lastIndexOf(null);
-          if (idx===-1) {
-            return obj.values[0][obj.values.length-1];
+          if (idx === -1) {
+            return obj.values[0][obj.values.length - 1];
           } else {
-            return obj.values[0][idx-1];
+            return obj.values[0][idx - 1];
           }
         }
       }
       function lastini(obj) {
-        if (obj.inits.length===0) {
+        if (obj.inits.length === 0) {
           return 0;
         } else {
           // TODO: in case of non 0
           let idx = obj.inits[0].indexOf(null);
-          if (idx===-1) {
-            return obj.inits[0][obj.inits.length-1];
+          if (idx === -1) {
+            return obj.inits[0][obj.inits.length - 1];
           } else {
-            return obj.inits[0][idx-1];
+            return obj.inits[0][idx - 1];
           }
         }
       }
@@ -171,7 +174,7 @@ let config = {
           hasBackdash = 1;
         }
         let cidx = -(result.backdash);
-        let ridx = now()-(result.dash + hasBackdash);
+        let ridx = now() - (result.dash + hasBackdash);
         return val(seq, cidx, ridx);
       }
       function processHashDoller(seq, idx, op) {
@@ -190,12 +193,12 @@ let config = {
       }
       function processTail(head, tail) {
         let ret = [];
-        if (head !== null && typeof(head)!=='undefined') {
+        if (head !== null && typeof (head) !== 'undefined') {
           ret = ret.concat(head);
         }
         for (let ti = 0; ti < tail.length; ti++) {
-          for (let tj=0; tj< tail[ti][2].length; tj++) {
-            if (tail[ti][2][tj]!== null && typeof(tail[ti][2][tj])!=='undefined') {
+          for (let tj = 0; tj < tail[ti][2].length; tj++) {
+            if (tail[ti][2][tj] !== null && typeof (tail[ti][2][tj]) !== 'undefined') {
               ret = ret.concat(tail[ti][2][tj]);
             }
           }
@@ -218,19 +221,19 @@ let config = {
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        calcDepend(decl, formulaDep, condDep, argvsDepArray,argvsCondDepArray);
+        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constarg = true;
-          for(let aj=0; aj< argvsDepArray[ai].length; aj++) {
-            if (argvsDepArray[ai][aj].type.indexOf('seqend')===-1) {
+          for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
+            if (argvsDepArray[ai][aj].type.indexOf('seqend') === -1) {
               constarg = false;
             }
           }
-          for(let ak=0; ak< argvsCondDepArray[ai].length; ak++) {
-            if (argvsCondDepArray[ai][ak].type.indexOf('seqend')===-1) {
+          for (let ak = 0; ak < argvsCondDepArray[ai].length; ak++) {
+            if (argvsCondDepArray[ai][ak].type.indexOf('seqend') === -1) {
               constarg = false;
-            }          
+            }
           }
           if (constarg) {
             continue;
@@ -261,7 +264,7 @@ let config = {
           }
           if (argvsDepArray) {
             for (let ai = 0; ai < argvsDepArray.length; ai++) {
-              for (let aj=0;aj < argvsDepArray[ai].length; aj++) {
+              for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
                 if ('type' in argvsDepArray[ai][aj]) {
                   // force seqend in case of argvs
                   argvsDepArray[ai][aj].type = 'seqend_argvs';
@@ -272,7 +275,7 @@ let config = {
           }
           if (argvsCondDepArray) {
             for (let ai = 0; ai < argvsCondDepArray.length; ai++) {
-             for (let aj=0;aj < argvsCondDepArray[ai].length; aj++) {
+              for (let aj = 0; aj < argvsCondDepArray[ai].length; aj++) {
                 if ('type' in argvsCondDepArray[ai][aj]) {
                   // force seqend in case of argvs
                   argvsCondDepArray[ai][aj].type = 'seqend_argvs';
@@ -293,7 +296,7 @@ let config = {
               if (!(name in config.depend[decl])) {
                 config.depend[decl][name] = 0;
               }
-              if (depend[di].type.indexOf('seqend')===0) {
+              if (depend[di].type.indexOf('seqend') === 0) {
                 config.depend[decl][name] = Math.max(config.depend[decl][name], config.max);
               } else {
                 config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
@@ -320,7 +323,7 @@ let config = {
         // main loop
         max += config.max;
         for (let i = 0; i < max + config.max; i++) {
-          config.state.now = i%max;
+          config.state.now = i % max;
           for (let di = 0; di < config.decls.length; di++) {
             let decl = config.decls[di];
             config.state.self = decl;
@@ -334,7 +337,9 @@ let config = {
                 for (let ai = 0; ai < argvs.length; ai++) {
                   if (!(ai in config.iteraita[decl].sideSequences)) {
                     let str = argvs[ai];
-                    let evaled = config.formulaParser.parse(str);
+                    config.parser.mode = true;
+                    let evaled = config.parser.formula.parse(str);
+                    config.parser.mode = false;
                     sideArray.push([evaled]);
                   } else {
                     constarg = false;
@@ -362,17 +367,17 @@ let config = {
                     tmpargv.push((sideArray[ai][mod]));
                   }
                   if (decl.indexOf('_') !== 0) {
-                    appendColumn(iter,tmpargv);
+                    appendColumn(iter, tmpargv);
                   } else {
                     let varimax = 1;
                     let varis = [];
-                    if (iter.formulaDep && iter.formulaDep.length>0) {
+                    if (iter.formulaDep && iter.formulaDep.length > 0) {
                       varis = varis.concat(iter.formulaDep);
                     }
-                    if (iter.conditionDep && iter.conditionDep.length>0) {
+                    if (iter.conditionDep && iter.conditionDep.length > 0) {
                       varis = varis.concat(iter.conditionDep);
                     }
-                    if (varis.length>0) {
+                    if (varis.length > 0) {
                       for (let vi = 0; vi < varis.length; vi++) {
                         if ('name' in varis[vi]) {
                           let vari = varis[vi].name;
@@ -381,7 +386,7 @@ let config = {
                       }
                     }
                     for (let vi = 0; vi < varimax; vi++) {
-                      appendColumn(iter,tmpargv);
+                      appendColumn(iter, tmpargv);
                     }
                   }
                 }
@@ -399,14 +404,18 @@ let config = {
         iter.values.push([]);
       }
       function appendRow(iter, cidx) {
-        if (iter.condition.length>0) {
-          let cond = config.formulaParser.parse(iter.condition,{startRule:'Condition'});
+        if (iter.condition.length > 0) {
+          config.parser.mode = true;
+          let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
+          config.parser.mode = false;
           if (!cond) {
             iter.values[cidx].push(null);
             return;
-          } 
+          }
         }
-        let val = config.formulaParser.parse(iter.formula);
+        config.parser.mode = true;
+        let val = config.parser.formula.parse(iter.formula);
+        config.parser.mode = false;
         iter.values[cidx].push(val);
       }
       function setStart(decls, depend, starts) {
@@ -417,7 +426,7 @@ let config = {
             delete starts[decl];
           }
         }
-        
+
         for (let di = 0; di < decls.length; di++) {
           let decl = decls[di];
           if (!(decl in depend)) {
@@ -480,9 +489,6 @@ let config = {
   let funcStr = JSON.stringify(param.func, replacer);
   funcStr = funcStr.replace(/^"function \(\) {\\n\s*return test;/, '').replace(/}"$/, '').replace(/\\n/g, '\n');
 
-  let formulaStr = getFormulaStr(funcStr);
-  config.formulaParser = peg.generate(formulaStr,{allowedStartRules:['Formula','Condition']});
-
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
     if (typeof v === 'class') { return v.toString(); };
@@ -490,15 +496,17 @@ let config = {
   }
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
+  config.parser.formula = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
 
-/*
-  console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
-  B @ A# 
-  C @ B#` + '\n'));
-*/
-console.log(config.depend);
-console.log(config.starts);
-console.log(statementParser.parse(`
+  /*
+    console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
+    B @ A# 
+    C @ B#` + '\n'));
+  */
+  console.log(config.depend);
+  console.log(config.starts);
+  config.parser.mode = false;
+  console.log(statementParser.parse(`
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
@@ -559,12 +567,19 @@ ${funcStr}
 Statements
 = Statement+ 
 {
+  if (config.parser.mode) {
+    return;
+  }
   processStatements();
 }
 
 Statement
 = _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
 {
+
+  if (config.parser.mode) {
+    return;
+  }
   let _condStr = '';
   let _cond = [];
   if (cond && cond.length>0) {
@@ -593,64 +608,109 @@ Statement
 Condition
 = head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)*
 {
-  let ret = processTail(head, tail);
-  ret.push({ text: text() });
-  return ret;
+  if (config.parser.mode) {
+    return processAndOr(head, tail);
+  } else {
+    let ret = processTail(head, tail);
+    ret.push({ text: text() });
+    return ret;
+  }
 }
 
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  
 {
-  let ret = processTail(head, tail);
-  ret.push({ text:text() });
-  return ret;
+  if (config.parser.mode) {
+    return processAddSub(head, tail);
+  } else {
+    let ret = processTail(head, tail);
+    ret.push({ text:text() });
+    return ret;
+  }
 }
 / tail:(_ ('+' / '-') FuncTerm)* 
 {
-  let ret = processTail(null, tail);
-  ret.push({ text:text() });
-  return ret;
+  if (config.parser.mode) {
+    return processAddSub(0, tail);
+  } else {
+    let ret = processTail(null, tail);
+    ret.push({ text:text() });
+    return ret;
+  }
 }
 
 FuncCondTerm
 /*
 = _ '(' head:Condition ')' { 
-  let ret = processTail(head, null);
-  ret.push({ text: text() });  
-  //return expr; 
+  if (config.parser.mode) {
+    return;
+  } else {
+    let ret = processTail(head, null);
+    ret.push({ text: text() });  
+    //return expr; 
+  }
 }
 */
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) Term)+
 {
-  return processTail(head, tail);
+  if (config.parser.mode) {
+    let ret = processFuncCond(head, tail);
+    return ret;
+  } else {
+    return processTail(head, tail);
+  }
 }
 / _ op:[a-z]+ _ args:Term 
 {
-  return args; 
+  if (config.parser.mode) {
+    return processFuncCondEx(op.join(''), null, args);
+  } else {
+    return args; 
+  }
 }
 / _ op:[a-z]+ tail:(_ '[' Term ']')* 
 {
-  return processTail(null, tail);
+  if (config.parser.mode) {
+    return processFuncCondEx(op.join(''),2, tail);
+  } else { 
+    return processTail(null, tail);
+  }
 }
 
 FuncTerm
 = head:Term tail:(_ [a-z]+ Term)*
 {
-  return processTail(head, tail);
+  if (config.parser.mode) {
+    return processFunc(head, tail);
+  } else {
+    return processTail(head, tail);
+  }
 }
 / _ op:[a-z]+ _ args:Term 
 {
-  return args; 
+  if (config.parser.mode) {
+    return processFuncEx(op.join(''), null, args);
+  } else { 
+    return args; 
+  }
 }
 / _ op:[a-z]+ tail:(_ '[' Term ']')* 
 {
-  return processTail(null, tail);
+  if (config.parser.mode) {
+    return processFuncEx(op.join(''), 2, args);
+  } else {
+    return processTail(null, tail);
+  }
 }
 
 Term
 = head:Factor tail:(_ ('*' / '/') Factor )* 
 {
-  return processTail(head, tail);
+  if (config.parser.mode) {
+    return processMulDiv(head, tail);
+  } else {
+    return processTail(head, tail);
+  }
 }
 
 Factor
@@ -659,45 +719,76 @@ Factor
   / SysOperatedDoller
   / SysOperatedHash
   / SysOperatedDash
-  / Sequence
+  / seq:Sequence
+  {
+    if (config.parser.mode) {
+      return val(seq,0,now());
+    } else {
+      return seq;
+    }
+  }
 
 SysOperatedDash
 = seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ 
 {
-  return [{
-    type: 'seqstart',
-    name: seq[0].name,
-  }];
+  if (config.parser.mode) {
+    return processDash (seq,tail);
+  } else { 
+    return [{
+      type: 'seqstart',
+      name: seq[0].name,
+    }];
+  }
 }
 / tail:(_ [${dash}${backdash}]  SysIndex*)+ 
 {
-  return [];
+  if (config.parser.mode) {
+    return processDash (self(),tail);
+  } else {
+    return [];
+  }
 }
 
 SysOperatedDoller
-= seq:Sequence _ '$' idx:SysIndex?
+= seq:Sequence _ op:'$' idx:SysIndex?
 {
+  if (config.parser.mode) {
+    return processHashDoller (seq, idx, op);
+  } else {
     return [{
       type: 'seqend',
       name: seq[0].name,
     }]; 
+  }
 }
-/ _ '$' idx:SysIndex*
+/ _ op:'$' idx:SysIndex*
 {
+  if (config.parser.mode) {
+    return processHashDoller (self(), idx, op);
+  } else {
     return [];
+  }
 }
 
 SysOperatedHash
-= seq:Sequence _ '#' idx:SysIndex? 
+= seq:Sequence _ op:'#' idx:SysIndex? 
 {
+  if (config.parser.mode) {
+    return processHashDoller (seq, idx, op);
+  } else {
     return [{
       type: 'seqend',
       name: seq[0].name,
     }];
- }
-/ _ '#' idx:SysIndex* 
+  }
+}
+/ _ op:'#' idx:SysIndex* 
 {
+  if (config.parser.mode) {
+    return processHashDoller (self(), idx, op);
+  } else {
     return [];
+  }
 }
 
 SysIndex
@@ -712,122 +803,24 @@ SysIndex
 
 Sequence 
 = _ seq:[A-Z]+ _ { 
-  return [{
-    type: 'sequence',
-    name: seq.join(''),
-  }];
-}
-
-UnsignedNumber
-= _ $( _UnsignedFloat / _UnsignedInt) _
-{
-  return [];
-}
-
-_UnsignedFloat
-= _UnsignedInt '.' [0-9]*
-/ '.' [0-9]+
-
-SignedInt
-= _ [${signed}] _UnsignedInt _
-/ _UnsignedInt
-
-_UnsignedInt
-= '0'
-/ [1-9] [0-9]*
-
-_
-= [${wsp}]*
-  
-  
-`;
+  if (config.parser.mode) {
+    return config.iteraita[seq.join('')];
+  } else { 
+    return [{
+      type: 'sequence',
+      name: seq.join(''),
+    }];
   }
-  function getFormulaStr(funcStr) {
-    let signed = '\\+\\-';
-    let wsp = ' \\t\\n\\r';
-    let dash = `"'"`;
-    let backdash = "'\\\`'";
-    return `
-
-// Simple Arithmetics Grammar
-// ==========================
-//
-// Accepts expressions like "2 * (3 + 4)" and computes their value.
-{
-${funcStr}
 }
-
-Formula
-= head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
-/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
-
-
-Condition
-= head:FuncCondTerm tail:(('and' / 'or') FuncCondTerm)*
-{
-  return processAndOr(head, tail);
-}
-
-FuncCondTerm
-= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / [a-z]+ ) Term)+
-{
-  let ret = processFuncCond(head, tail);
-  return ret;
-}
-/ _ op:[a-z]+ _ args:Term 
-{
-  return processFuncCondEx(op.join(''), null, args);
-}
-/ _ op:[a-z]+ tail:(_ '[' Term ']')* 
-{
-  return processFuncCondEx(op.join(''),2, tail);
-}
-
-FuncTerm
-= head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
-/ tail:_ op:[a-z]+ _ args:Term { return processFuncEx(op.join(''), null, args); }
-/ tail:_ op:[a-z]+ args:(_ '[' Term ']')* { return processFuncEx(op.join(''), 2, args); }
-
-Term
-= head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
-
-Factor
-= _ '(' expr:Formula ')' { return expr; }
-  / UnsignedNumber
-  / SysOperatedDoller
-  / SysOperatedHash
-  / SysOperatedDash
-  / seq:Sequence { return val(seq,0,now()); }
-
-SysOperatedDash
-= seq:Sequence tail:(_ [${dash}${backdash}] SysIndex*)+ { return processDash (seq,tail); }
-/ tail:(_ [${dash}${backdash}]  SysIndex*)+ { return processDash (self(),tail);}
-
-SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex? { return processHashDoller (seq, idx, op); }
-/ _ op:'$' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysOperatedHash
-= seq:Sequence _ op:'#' idx:SysIndex? { return processHashDoller (seq, idx, op); }
-/ _ op:'#' idx:SysIndex* { return processHashDoller (self(), idx, op); }
-
-SysIndex
-= _ '{' signed:SignedInt '}'
-{
-  return parseInt(signed,10);
-}
-/ _ unsinged:_UnsignedInt
-{
-  return parseInt(unsinged,10);
-}
-
-Sequence 
-= _ seq:[A-Z]+ _ { return config.iteraita[seq.join('')];}
 
 UnsignedNumber
 = _ $( _UnsignedFloat / _UnsignedInt) _
 {
-  return parseFloat(text());
+  if (config.parser.mode) {
+    return parseFloat(text());
+  } else {
+    return [];
+  }
 }
 
 _UnsignedFloat
@@ -844,7 +837,6 @@ _UnsignedInt
 
 _
 = [${wsp}]*
-  
 `;
   }
 })(console,
