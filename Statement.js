@@ -3,6 +3,7 @@ let config = {
   state: {
     self: null,
     now: 0,
+    here: 0,
     serial: 0,
   },
   parser: {
@@ -29,12 +30,15 @@ let config = {
       function now() {
         return config.state.now % config.max;
       }
+      function here() {
+        return config.state.here;
+      }
       function getRidx(_ridx) {
         return (_ridx + config.max * 10) % config.max;
 
       }
       function getCidx(obj, _cidx) {
-        var cidx = 0;
+        var cidx = _cidx;
         if (typeof (_cidx) === 'undefined') {
           cidx = (_cidx + obj.values.length * 10) % obj.values.length;
         }
@@ -183,12 +187,12 @@ let config = {
           if (arg === null) {
             return lastval(seq);
           }
-          return val(seq, 0, arg);
+          return val(seq, here(), arg);
         } else {
           if (arg === null) {
             return lastini(seq);
           }
-          return ini(seq, 0, arg);
+          return ini(seq, here(), arg);
         }
       }
       function processTail(head, tail) {
@@ -419,8 +423,10 @@ let config = {
                 }
               }
               for (let ii = 0; ii < iter.values.length; ii++) {
+                config.state.here = ii;
                 appendRow(iter, ii);
               }
+              config.state.here = 0;
             }
           }
         }
@@ -432,7 +438,6 @@ let config = {
       }
       function appendRow(iter, cidx) {
         if (iter.condition.length > 0) {
-
           config.parser.mode = true;
           let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
           config.parser.mode = false;
@@ -442,7 +447,6 @@ let config = {
           }
         }
         config.parser.mode = true;
-
         let val = config.parser.formula.parse(iter.formula, { startRule: 'Formula' });
         config.parser.mode = false;
         iter.values[cidx].push(val);
@@ -568,21 +572,7 @@ L	@ 20
 R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
-LINE @ 
-$3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
-  |
-(
- (
-   ($0-$2)*($0-$2)>=0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-)
-or
-( 
-  (($1-$3)*($1-$3)<0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-)
+LINE @ $0
  [PX'][PY'][PX][PY]
   `);
   /*
@@ -814,7 +804,7 @@ Factor
   / seq:Sequence
   {
     if (config.parser.mode) {
-      return val(seq,0,now());
+      return val(seq,here(),now());
     } else {
       return seq;
     }
@@ -935,4 +925,4 @@ _
   typeof (peg) === 'undefined'
     ? { generate: function () { return { parse: function () { } } } }
     : peg
-  );
+);
