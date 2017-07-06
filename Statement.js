@@ -224,18 +224,18 @@ let config = {
         calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
 
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
-          let constarg = true;
+          let constargv = true;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
-            if (argvsDepArray[ai][aj].type==='seqend_variargv') {
-              constarg = false;
+            if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
+              constargv = false;
             }
           }
           for (let ak = 0; ak < argvsCondDepArray[ai].length; ak++) {
-            if (argvsCondDepArray[ai][ak].type==='seqend_variargv') {
-              constarg = false;
+            if (argvsCondDepArray[ai][ak].type === 'seqend_variargv') {
+              constargv = false;
             }
           }
-          if (constarg) {
+          if (constargv) {
             continue;
           }
           let _decl = '_' + config.state.serial++;
@@ -316,6 +316,8 @@ let config = {
       function processStatements() {
         setStart(config.decls, config.depend, config.starts);
         run();
+        console.log(JSON.stringify(config.depend));
+        console.log(config.starts);
         console.log(config.iteraita);
         return;
       }
@@ -341,7 +343,7 @@ let config = {
               if (config.starts[decl] === i) {
                 let sideArray = [];
                 let minSides = 0;
-                let constarg = true;
+                let constargv = true;
                 for (let ai = 0; ai < argvs.length; ai++) {
                   if (!(ai in config.iteraita[decl].sideSequences)) {
                     let str = argvs[ai];
@@ -350,7 +352,7 @@ let config = {
                     config.parser.mode = false;
                     sideArray.push([evaled]);
                   } else {
-                    constarg = false;
+                    constargv = false;
                     let _decl = config.iteraita[decl].sideSequences[ai];
                     let tmp = [];
                     for (let ii = 0; ii < config.iteraita[_decl].values.length; ii++) {
@@ -363,10 +365,10 @@ let config = {
                     }
                     sideArray.push(tmp);
 
-                    console.log(decl +'::'+_decl+ ':' + minSides);
+                    //console.log(decl + '::' + _decl + ':' + minSides);
                   }
                 }
-                if (constarg) {
+                if (constargv) {
                   minSides = 1;
                 }
                 for (let mi = 0; mi < minSides; mi++) {
@@ -425,7 +427,7 @@ let config = {
         }
         config.parser.mode = true;
 
-        let val = config.parser.formula.parse(iter.formula,{ startRule: 'Formula' });
+        let val = config.parser.formula.parse(iter.formula, { startRule: 'Formula' });
         config.parser.mode = false;
         iter.values[cidx].push(val);
       }
@@ -483,14 +485,32 @@ let config = {
           }
         }
       }
+      /*
       function test() {
-        let decls = ['A', 'B'];
-        let depend = {
-          B: { A: 10 }
+        let decls = ['LINE','A', 'C', 'S', 'G', 'SB', 'CB', 'CN', 'SN', 'H', 'L', 'R', 'P', 'PA', 'PB', 'PX', 'PY', '_0', '_1','_2','_3'];
+        let depend = { 
+         "PA": { "A": 0 },
+         "PB": { "A": 0 }, 
+         "P": { "PA": 0, "PB": 0 }, 
+         "G": { "P": 4, "H": 0 }, 
+         "CB": { "G": 0, "A": 0 }, 
+         "C": { "CB": 0 }, 
+         "SB": { "G": 4, "A": 0 }, 
+         "S": { "SB": 0, "G": 4 }, 
+         "CN": { "C": 4 }, 
+         "SN": { "C": 4, "S": 4 }, 
+         "PX": { "L": 0, "CN": 0, "A": 0, "H": 0, "R": 0 }, 
+         "PY": { "L": 0, "SN": 0, "A": 0, "H": 0, "R": 0 }, 
+         "LINE": { "A": 0, "PX": 4, "PY": 4, "_0": 4, "_1": 4, "_2": 4, "_3": 4  }, 
+         "_0": { "PX": 4 }, 
+         "_1": { "PY": 4 }, 
+         "_2": { "PX": 4 }, 
+         "_3": { "PY": 4 } 
         };
         setStart(decls, depend, config.starts);
         console.log(config.starts);
       }
+      */
     }
   };
   // uncomment for test
@@ -897,6 +917,6 @@ _
   }
 })(console,
   typeof (peg) === 'undefined'
-    ? { generate: function () { return require("pegjs"); } }
+    ? { generate: function () { return { parse: function () { } } } }
     : peg
   );
