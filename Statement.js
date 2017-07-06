@@ -508,6 +508,14 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(`
+   A @ 1 | ((1=1) and (2=2))
+   B @ 1 | 1=1 and 2=2
+   C @ 1 | (1=1) and (2=2)
+   D @ 1 | (((1=1) and (2=2)))
+   E @ 1 | ((1=1) and 2=2)
+  `);
+  /*
+
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
@@ -525,7 +533,8 @@ R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
 LINE @ $3+1-($3 mod 1) | 
-    (
+
+    ((
       (
         ($0-$2)*($0-$2)<0.0001
       ) 
@@ -533,11 +542,9 @@ LINE @ $3+1-($3 mod 1) |
       (
         A=($2+1-(($2+1) mod 1))
       )
-    )
+    ))
+  
  [PX'][PY'][PX][PY]
-  `);
-  /*
-   C @ 1 | (1=1) and (2=2)
 
 (
   (
@@ -609,7 +616,7 @@ Statements
 }
 
 Statement
-= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' ConditionTop )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
+= _ seq:Sequence _ '@' _ formula:Formula  cond:( _ '|' Condition )? _ argvs:('[' Formula ( _ '|' Condition )? ']' _ )* 
 {
 
   if (config.parser.mode) {
@@ -638,16 +645,6 @@ Statement
   }
   let _formulaStr = formula.pop().text;
   processStatement(seq,formula, _cond, _argvsArray, _argvsCondArray, _formulaStr, _condStr,_argvsStrArray, _argvsCondStrArray);
-}
-
-ConditionTop
-= _ '(' _ cond:Condition _ ')'
-{
-  return cond;
-}
-/ _ cond:Condition
-{
-  return cond;
 }
 
 Condition
@@ -686,7 +683,7 @@ Formula
 
 
 FuncCondTerm
-= _ '(' _ cond:FuncCondTerm _ ')'
+= _ '(' _ cond:Condition _ ')'
 {
   return cond;
 }
