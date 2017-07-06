@@ -47,7 +47,6 @@ let config = {
           return obj.values[cidx][now()];
         }
         if (ridx >= 0) {
-         console.log(obj);
           return obj.values[cidx][getRidx(ridx)];
         } else {
           return obj.inits[cidx][getRidx(obj.inits[cidx].length + ridx)];
@@ -344,14 +343,12 @@ let config = {
                     for (let ii = 0; ii < config.iteraita[_decl].values.length; ii++) {
                       tmp = tmp.concat(config.iteraita[_decl].values[ii]);
                     }
-                    console.log(_decl+' >>>>> '+minSides+ ' '+tmp+' << '+config.iteraita[_decl].values );
                     if (minSides) {
                       minSides = Math.min(minSides, tmp.length);
                     } else {
                       minSides = tmp.length;
                     }
                     sideArray.push(tmp);
-                    console.log(_decl+' '+minSides);
                   }
                 }
                 if (constarg) {
@@ -512,41 +509,33 @@ CB @ -' * G*G / (2*A * (2*A-1)) [1]
 C @ ' + CB [1]
 SB @ -2*' * G*G / (2*A * (2*A+1)) [G#]
 S @ S' + SB [G#]
-CN @ 2*C#* ' - '' [0][0]
+CN @ 2*C#* ' - '' [C#][0]
 SN @ 2*C#* ' - '' [-S#] [0]
 L	@ 20
 R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
-LINE @ $3+1- ($3 mod 1) [PX'][PY'][PX][PY]
+LINE @ $3+1-($3 mod 1)  | 1=1 [PX'][PY'][PX][PY]
 `));
   /*
 
+  (($0-$2)*($0-$2)<0.0001)
+  and
+  (A=$2+1-(($2+1) mod 1))
 
-CN @ 2*C#* ' - ''  [C#] [1]
-  | 
-  or(and(($0-$2)*($0-$2)<0.0001 and A=$2+1-mod($2+1,1)),and(($1-$3)*($1-$3)<0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0)) } $3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1))+1-mod($3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1)),1) | { and(($0-$2)*($0-$2)>=0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0) } 
-| 
-  or(and(($0-$2)*($0-$2)<0.0001 and A=$2+1-mod($2+1,1)),and(($1-$3)*($1-$3)<0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0)) } $3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1))+1-mod($3+($1-$3)/($0-$2)*(自然数-$2-1+mod($2+1,1)),1) | { and(($0-$2)*($0-$2)>=0.0001,(自然数-$2-1+mod($2+1,1))*(自然数-$0+mod($0,1))<=0) } 
+or
+( 
+  (($1-$3)*($1-$3)<0.0001)
+  and 
+  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
+)
 
-A	 @ '+1 [0]
-PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
-PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
-P @ PA/PB	
-H @ 11	
-G @ 2* P#/H
-CB @ -' * G*G / (2*A * (2*A-1)) [1]
-C @ ' + CB [1]
-SB @ -' * G*G / (2*A * (2*A+1)) [G#]
-S @ S' + SB [G#]
-CN @ 2*C#* ' - ''  [C#] [1]
-SN @ 2*C#* ' - '' [S#*(-1)] [0]
-L	@ 20
-R @ 1
-
-PX @ '-L*(CN) | A <= H*R [0]
-PY @ ' + L * SN | A <= H*R [0]
-
+$3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) |
+(
+ (($0-$2)*($0-$2)>=0.0001)
+ and 
+ ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
+)
   console.log(statementParser.parse(`A @ B# + 1 
   +2 | A=B
   [1][B]
@@ -624,6 +613,13 @@ Formula
 }
 
 FuncCondTerm
+/*
+= _ '(' head:Condition ')' { 
+  let ret = processTail(head, null);
+  ret.push({ text: text() });  
+  //return expr; 
+}
+*/
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) Term)+
 {
   return processTail(head, tail);
