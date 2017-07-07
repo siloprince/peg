@@ -209,23 +209,23 @@ let config = {
         }
         return ret;
       }
-      function processStatement(seq, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
+      function processStatement(seq, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
         let decl = seq[0].name;
         config.decls.push(decl);
         config.iteraita[decl] = {
           inits: [],
           values: [],
-          formula: formulaStr,
-          condition: condStr,
+          formula: formulaStrArray[0],
+          condition: condStrArray[0],
           argvs: argvsStrArray,
           argvsCondition: argvsCondStrArray,
-          formulaDep: formulaDep,
-          conditionDep: condDep,
+          formulaDep: formulaDepArray[0],
+          conditionDep: condDepArray[0],
           argvsDep: argvsDepArray,
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
+        calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
@@ -260,25 +260,29 @@ let config = {
           config.iteraita[_decl] = {
             inits: [],
             values: [],
-            formula: argvsStrArray[ai],
-            condition: argvsCondStrArray[ai],
+            formula: [argvsStrArray[ai]][0],
+            condition: [argvsCondStrArray[ai]][0],
             argvs: [],
-            formulaDep: argvsDepArray[ai],
-            conditionDep: argvsCondDepArray[ai],
+            formulaDep: [argvsDepArray[ai]][0],
+            conditionDep: [argvsCondDepArray[ai]][0],
             argvsDep: null,
             sideSequences: [],
           };
           calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
         }
         // recalculate
-        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
+        calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
 
         return;
-        function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
+        function calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray) {
           let depend = [];
-          depend = depend.concat(formulaDep);
-          if (condDep) {
-            depend = depend.concat(condDep);
+          for (let fi=0;fi<formulaDepArray.length;fi++) {
+            depend = depend.concat(formulaDepArray[fi]);
+          }
+          if (condDepArray) {
+            for (let ci=0;ci<condDepArray.length;ci++) {
+              depend = depend.concat(condDepArray[ci]);
+            }
           }
           if (argvsDepArray) {
             for (let ai = 0; ai < argvsDepArray.length; ai++) {
@@ -666,17 +670,32 @@ TODO:
 * function and operator definition with {}
 */
 Statement
-= seq:Sequence _ '@' formula:Formula  cond:( _ '|' Condition )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
+= seq:Sequence _ '@' formcond:( Formula ( _ '|' Condition )? ) argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
 {
 
   if (config.parser.mode) {
     return;
   }
-  let _condStr = '';
-  let _cond = [];
-  if (cond && cond.length>0) {
-    _condStr = cond[2].pop().text;
-    _cond = cond[2];
+  let _formulaArray = [];
+  let _formulaStrArray = [];
+  let _condArray = [];
+  let _condStrArray = [];
+  //for (let fi=0;fi<formcond.length;fi++) 
+  {
+    let _formcond = formcond; // formcond[fi];
+    let formula = _formcond[0];
+    let cond = _formcond[1];
+    _formulaStrArray.push(formula.pop().text);
+    _formulaArray.push(formula);
+
+    let _condStr = '';
+    let _cond = [];
+    if (cond && cond.length>0) {
+      _condStr = cond[2].pop().text;
+      _cond = cond[2];
+    }
+    _condStrArray.push(_condStr);
+    _condArray.push(_cond);
   }
   let _argvsStrArray = [];
   let _argvsCondStrArray = [];
@@ -696,8 +715,7 @@ Statement
       _argvsCondArray.push([]);
     }
   }
-  let _formulaStr = formula.pop().text;
-  processStatement(seq,formula, _cond, _argvsArray, _argvsCondArray, _formulaStr, _condStr,_argvsStrArray, _argvsCondStrArray);
+  processStatement(seq,_formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray,_argvsStrArray, _argvsCondStrArray);
 }
 
 Condition
