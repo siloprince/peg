@@ -670,7 +670,7 @@ TODO:
 * function and operator definition with {}
 */
 Statement
-= seq:Sequence _ '@' formcond:( Formula ( _ '|' Condition )? ) argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
+= seq:Sequence _ '@' formcond:( Formula ( _ '|' Condition )? )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
 {
 
   if (config.parser.mode) {
@@ -682,7 +682,7 @@ Statement
   let _condStrArray = [];
   //for (let fi=0;fi<formcond.length;fi++) 
   {
-    let _formcond = formcond; // formcond[fi];
+    let _formcond = formcond;//[fi];
     let formula = _formcond[0];
     let cond = _formcond[1];
     _formulaStrArray.push(formula.pop().text);
