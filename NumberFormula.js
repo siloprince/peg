@@ -51,18 +51,27 @@
         return obj[cidx].inits[obj[cidx].inits.length - ridx - 1];
       }
       function processAddSub(head, tail) {
+        if (head === null && tail.length===0) {
+          return null;
+        }
         return tail.reduce(function (result, element) {
           if (element[1] === '+') { return result + element[2]; }
           if (element[1] === '-') { return result - element[2]; }
         }, head);
       }
       function processMulDiv(head, tail) {
+        if (head === null && tail.length===0) {
+          return null;
+        }
         return tail.reduce(function (result, element) {
           if (element[1] === '*') { return result * element[2]; }
           if (element[1] === '/') { return result / element[2]; }
         }, head);
       }
       function processFunc(head, tail) {
+        if (head === null && tail.length===0) {
+          return null;
+        }
         return tail.reduce(function (result, element) {
           let func = element[1].join('');
           if (func === 'mod') { return result % element[2]; }
@@ -134,11 +143,13 @@
   let pegStr = getPegStr(funcStr);
   console.log(pegStr);
   let parser = peg.generate(pegStr);
-
+  console.log(parser.parse('10 11 '));
+/*
   console.log(parser.parse('A @ 10 mod 4'));
   console.log(parser.parse('A @ mod [10][4]'));
   console.log(parser.parse('A @ not 4'));
   console.log(parser.parse('A @ not [10]'));
+  */
   //console.log(parser.parse("A``'"));
   function replacer(k, v) {
     if (typeof v === 'function') { return v.toString(); };
@@ -158,19 +169,27 @@
 {
 ${funcStr}
 }
-
+/*
 Statement
 = seq:SeqName _ '@' formula:Formula {
   return text() +' : '+ formula;
 }
+*/
+
+
+Statement
+= Formula Formula  _
+
+/*
+ A A | B A 
+*/
 
 SeqName
 = _ seq:[A-Z]+ _ { return seq.join(''); }
 
 Formula
 = head:FuncTerm tail:(_ ('+' / '-')  FuncTerm)*  { return processAddSub(head, tail); }
-/ tail:(_ ('+' / '-') FuncTerm)* { return processAddSub(0, tail); }
-
+/ tail:(_ ('+' / '-') FuncTerm)+ { return processAddSub(0, tail); }
 
 FuncTerm
 = head:Term tail:(_ [a-z]+ Term)* { return processFunc(head, tail); }
@@ -181,8 +200,10 @@ Term
 = head:Factor tail:(_ ('*' / '/') Factor )* { return processMulDiv(head, tail); }
 
 Factor
-= _ '(' expr:Formula ')' { return expr; }
-  / UnsignedNumber
+= /*
+_ '(' expr:Formula ')' { return expr; }
+  /
+  */ UnsignedNumber
   / SysOperatedDoller
   / SysOperatedHash
   / SysOperatedDash

@@ -441,7 +441,7 @@ let config = {
         iter.values.push([]);
       }
       function appendRow(iter, cidx) {
-        if (iter.condition.length > 0) {
+        if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
           let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
           config.parser.mode = false;
@@ -576,9 +576,8 @@ L	@ 20
 R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
-LINE @ $0
- [PX'][PY'][PX][PY]
-  `);
+LINE @$1 [PX'][PY'][PX][PY]
+`);
   /*
 
 A	 @ '+1 [0]
@@ -668,34 +667,49 @@ TODO:
 * multiple Conditions
 * Conditions without expr
 * function and operator definition with {}
+ A ( _ '|' B  ( C _ '|' D )* )?
+
 */
 Statement
-= seq:Sequence _ '@' formcond:( Formula ( _ '|' Condition )? )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
+= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
 {
 
   if (config.parser.mode) {
     return;
   }
-  let _formulaArray = [];
-  let _formulaStrArray = [];
-  let _condArray = [];
+  let _formulaStrArray = [form.pop().text];
+  let _formulaArray = [form];
   let _condStrArray = [];
-  //for (let fi=0;fi<formcond.length;fi++) 
-  {
-    let _formcond = formcond;//[fi];
-    let formula = _formcond[0];
-    let cond = _formcond[1];
-    _formulaStrArray.push(formula.pop().text);
-    _formulaArray.push(formula);
-
-    let _condStr = '';
-    let _cond = [];
-    if (cond && cond.length>0) {
-      _condStr = cond[2].pop().text;
-      _cond = cond[2];
+  let _condArray = [];
+  if (formcond) {
+    for (let fi=0;fi<formcond.length;fi++) 
+    {
+      let _formcond = formcond[fi];
+      let cond1 = _formcond[2];
+      if (cond1 && cond1.length > 0 ) {
+        _condStrArray.push(cond1.pop().text);
+        _condArray.push(cond1);
+      }
+      let more = _formcond[3];
+      if (more && more.length > 0) {
+        let morecond = more[1];
+        let formula = more[0];
+        if (morecond && morecond.length > 0) {
+          let cond2 = morecond[2];
+          _formulaStrArray.push(formula.pop().text);
+          _formulaArray.push(formula);
+        
+          let _cond2Str = '';
+          let _cond2 = [];
+          if (cond2 && cond2.length>0) {
+            _cond2Str = cond2[2].pop().text;
+            _cond2 = cond2[2];
+          }
+          _condStrArray.push(_cond2Str);
+          _condArray.push(_cond2);
+        }
+      }
     }
-    _condStrArray.push(_condStr);
-    _condArray.push(_cond);
   }
   let _argvsStrArray = [];
   let _argvsCondStrArray = [];
@@ -716,10 +730,11 @@ Statement
     }
   }
   processStatement(seq,_formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray,_argvsStrArray, _argvsCondStrArray);
+
 }
 
 Condition
-= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)*
+= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)* _
 {
   if (config.parser.mode) {
     return processAndOr(head, tail);
@@ -731,7 +746,7 @@ Condition
 }
 
 Formula
-= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)*  
+= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)* _ 
 {
   if (config.parser.mode) {
     return processAddSub(head, tail);
@@ -741,7 +756,7 @@ Formula
     return ret;
   }
 }
-/ tail:( _ ('+' / '-') FuncTerm)* 
+/ tail:( _ ('+' / '-') FuncTerm)+ _
 {
   if (config.parser.mode) {
     return processAddSub(0, tail);
@@ -781,7 +796,7 @@ FuncCondTermSub
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '[' Term _ ']')* 
+/ _ op:[a-z]+ tail:( _ '[' Term _ ']')+ 
 {
   if (config.parser.mode) {
     return processFuncCondEx(op.join(''),2, tail);
@@ -807,7 +822,7 @@ FuncTerm
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '{' Term _ '}')* 
+/ _ op:[a-z]+ tail:( _ '{' Term _ '}')+
 {
   if (config.parser.mode) {
     return processFuncEx(op.join(''), 2, args);
