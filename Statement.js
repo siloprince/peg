@@ -671,7 +671,7 @@ TODO:
 
 */
 Statement
-= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? argvs:( _ '[' Formula ( _ '|' Condition )? _ ']' )*
+= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? argvs:( _ '[' Formula ( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? _ ']' )*
 {
 
   if (config.parser.mode) {
