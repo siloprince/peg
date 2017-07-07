@@ -430,7 +430,7 @@ let config = {
                   if (!(ai in config.iteraita[decl].sideSequences)) {
                     let str = argvs[ai];
                     config.parser.mode = true;
-                    let evaled = config.parser.formula.parse(str);
+                    let evaled = config.parser.formula.parse(str.trim());
                     config.parser.mode = false;
                     sideArray.push([evaled]);
                   } else {
@@ -501,7 +501,7 @@ let config = {
       function appendRow(iter, cidx) {
         if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
-          let cond = config.parser.formula.parse(iter.condition, { startRule: 'Condition' });
+          let cond = config.parser.formula.parse(iter.condition.trim(), { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
             iter.values[cidx].push(null);
@@ -509,7 +509,7 @@ let config = {
           }
         }
         config.parser.mode = true;
-        let val = config.parser.formula.parse(iter.formula, { startRule: 'Formula' });
+        let val = config.parser.formula.parse(iter.formula.trim(), { startRule: 'Formula' });
         config.parser.mode = false;
         iter.values[cidx].push(val);
       }
@@ -635,7 +635,7 @@ R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
 LINE @$1 [PX'][PY'][PX][PY]
-`);
+`.trim());
   /*
 
 A	 @ '+1 [0]
@@ -712,7 +712,7 @@ TODO:
 * multiple duplicate names
 */
 Statements
-= (Statement _ )+ 
+= (Statement)+ 
 {
   if (config.parser.mode) {
     return;
@@ -735,7 +735,7 @@ Statement
 }
 
 Condition
-= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)* _
+= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)*
 {
   if (config.parser.mode) {
     return processAndOr(head, tail);
@@ -747,7 +747,7 @@ Condition
 }
 
 Formula
-= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)* _ 
+= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)*
 {
   if (config.parser.mode) {
     return processAddSub(head, tail);
@@ -757,7 +757,7 @@ Formula
     return ret;
   }
 }
-/ tail:( _ ('+' / '-') FuncTerm)+ _
+/ tail:( _ ('+' / '-') FuncTerm)+
 {
   if (config.parser.mode) {
     return processAddSub(0, tail);
