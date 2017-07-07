@@ -209,7 +209,65 @@ let config = {
         }
         return ret;
       }
-      function processStatement(seq, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
+
+      function processStatement(seq, form, formcond, argvs) {
+        if (config.parser.mode) {
+          return;
+        }
+        let _formulaStrArray = [form.pop().text];
+        let _formulaArray = [form];
+        let _condStrArray = [];
+        let _condArray = [];
+        if (formcond) {
+          for (let fi = 0; fi < formcond.length; fi++) {
+            let _formcond = formcond[fi];
+            let cond1 = _formcond[2];
+            if (cond1 && cond1.length > 0) {
+              _condStrArray.push(cond1.pop().text);
+              _condArray.push(cond1);
+            }
+            let more = _formcond[3];
+            if (more && more.length > 0) {
+              let morecond = more[1];
+              let formula = more[0];
+              if (morecond && morecond.length > 0) {
+                let cond2 = morecond[2];
+                _formulaStrArray.push(formula.pop().text);
+                _formulaArray.push(formula);
+
+                let _cond2Str = '';
+                let _cond2 = [];
+                if (cond2 && cond2.length > 0) {
+                  _cond2Str = cond2[2].pop().text;
+                  _cond2 = cond2[2];
+                }
+                _condStrArray.push(_cond2Str);
+                _condArray.push(_cond2);
+              }
+            }
+          }
+        }
+        let _argvsStrArray = [];
+        let _argvsCondStrArray = [];
+        let _argvsArray = [];
+        let _argvsCondArray = [];
+        let formIdx = 2;
+        let condIdx = 3;
+        let condPlus = 2;
+        for (let ai = 0; ai < argvs.length; ai++) {
+          _argvsStrArray.push(argvs[ai][formIdx].pop().text);
+          _argvsArray.push(argvs[ai][formIdx]);
+          if (argvs[ai][condIdx]) {
+            _argvsCondStrArray.push(argvs[ai][condIdx][condPlus].pop().text);
+            _argvsCondArray.push(argvs[ai][condIdx][condPlus]);
+          } else {
+            _argvsCondStrArray.push('');
+            _argvsCondArray.push([]);
+          }
+        }
+        processStatementSub(seq, _formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray, _argvsStrArray, _argvsCondStrArray);
+      }
+      function processStatementSub(seq, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
         let decl = seq[0].name;
         config.decls.push(decl);
         config.iteraita[decl] = {
@@ -253,7 +311,7 @@ let config = {
               config.iteraita[decl].argvsCondDep.push([{ name: _decl, type: 'seqend_variargv' }]);
               break;
             }
-          }    
+          }
           config.decls.push(_decl);
           config.iteraita[decl].sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
@@ -276,11 +334,11 @@ let config = {
         return;
         function calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray) {
           let depend = [];
-          for (let fi=0;fi<formulaDepArray.length;fi++) {
+          for (let fi = 0; fi < formulaDepArray.length; fi++) {
             depend = depend.concat(formulaDepArray[fi]);
           }
           if (condDepArray) {
-            for (let ci=0;ci<condDepArray.length;ci++) {
+            for (let ci = 0; ci < condDepArray.length; ci++) {
               depend = depend.concat(condDepArray[ci]);
             }
           }
@@ -289,7 +347,7 @@ let config = {
               for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
                 if ('type' in argvsDepArray[ai][aj]) {
                   // force seqend in case of argvs
-                  if (argvsDepArray[ai][aj].type==='seqend') {
+                  if (argvsDepArray[ai][aj].type === 'seqend') {
                     argvsDepArray[ai][aj].type = 'seqend_constargv';
                   } else {
                     argvsDepArray[ai][aj].type = 'seqend_variargv';
@@ -304,7 +362,7 @@ let config = {
               for (let aj = 0; aj < argvsCondDepArray[ai].length; aj++) {
                 if ('type' in argvsCondDepArray[ai][aj]) {
                   // force seqend in case of argvs
-                  if (argvsCondDepArray[ai][aj].type==='seqend') {
+                  if (argvsCondDepArray[ai][aj].type === 'seqend') {
                     argvsCondDepArray[ai][aj].type = 'seqend_constargv';
                   } else {
                     argvsCondDepArray[ai][aj].type = 'seqend_variargv';
@@ -341,7 +399,7 @@ let config = {
         console.log(config.iteraita);
         return;
       }
-      function run(_max,_limit) {
+      function run(_max, _limit) {
         if (_limit) {
           config.limit.value = _limit;
         }
@@ -354,7 +412,7 @@ let config = {
           max = Math.max(max, config.starts[sk]);
         }
         // main loop
-        max = (max+1)*config.max;
+        max = (max + 1) * config.max;
         for (let i = 0; i < max + config.max; i++) {
           config.state.now = i % max;
           for (let di = 0; di < config.decls.length; di++) {
@@ -362,7 +420,7 @@ let config = {
             config.state.self = decl;
             let iter = config.iteraita[decl];
             let argvs = iter.argvs;
-            let start = config.starts[decl]*config.max;
+            let start = config.starts[decl] * config.max;
             if (start <= i && i <= start + config.max - 1) {
               if (start === i) {
                 let sideArray = [];
@@ -671,66 +729,9 @@ TODO:
 
 */
 Statement
-= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? argvs:( _ '[' Formula ( _ '|' Condition ( Formula ( _ '|' Condition )? )* )? _ ']' )*
+= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
-
-  if (config.parser.mode) {
-    return;
-  }
-  let _formulaStrArray = [form.pop().text];
-  let _formulaArray = [form];
-  let _condStrArray = [];
-  let _condArray = [];
-  if (formcond) {
-    for (let fi=0;fi<formcond.length;fi++) 
-    {
-      let _formcond = formcond[fi];
-      let cond1 = _formcond[2];
-      if (cond1 && cond1.length > 0 ) {
-        _condStrArray.push(cond1.pop().text);
-        _condArray.push(cond1);
-      }
-      let more = _formcond[3];
-      if (more && more.length > 0) {
-        let morecond = more[1];
-        let formula = more[0];
-        if (morecond && morecond.length > 0) {
-          let cond2 = morecond[2];
-          _formulaStrArray.push(formula.pop().text);
-          _formulaArray.push(formula);
-        
-          let _cond2Str = '';
-          let _cond2 = [];
-          if (cond2 && cond2.length>0) {
-            _cond2Str = cond2[2].pop().text;
-            _cond2 = cond2[2];
-          }
-          _condStrArray.push(_cond2Str);
-          _condArray.push(_cond2);
-        }
-      }
-    }
-  }
-  let _argvsStrArray = [];
-  let _argvsCondStrArray = [];
-  let _argvsArray = [];
-  let _argvsCondArray = [];
-  let formIdx = 2;
-  let condIdx = 3;
-  let condPlus = 2;
-  for (let ai=0;ai<argvs.length;ai++) {
-    _argvsStrArray.push(argvs[ai][formIdx].pop().text);
-    _argvsArray.push(argvs[ai][formIdx]);
-    if (argvs[ai][condIdx]) {
-      _argvsCondStrArray.push(argvs[ai][condIdx][condPlus].pop().text);
-      _argvsCondArray.push(argvs[ai][condIdx][condPlus]);
-    } else {
-      _argvsCondStrArray.push('');
-      _argvsCondArray.push([]);
-    }
-  }
-  processStatement(seq,_formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray,_argvsStrArray, _argvsCondStrArray);
-
+  processStatement(seq,form,formcond,argvs);
 }
 
 Condition
@@ -971,4 +972,4 @@ _
   typeof (peg) === 'undefined'
     ? { generate: function () { return { parse: function () { } } } }
     : peg
-);
+  );
