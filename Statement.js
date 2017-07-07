@@ -20,6 +20,9 @@ let config = {
   iteraita: {},
   decls: [],
   depend: {},
+  preprocess: function (str) {
+    return str.trim();
+  }
 };
 
 (function (console, peg) {
@@ -430,7 +433,7 @@ let config = {
                   if (!(ai in config.iteraita[decl].sideSequences)) {
                     let str = argvs[ai];
                     config.parser.mode = true;
-                    let evaled = config.parser.formula.parse(str.trim());
+                    let evaled = config.parser.formula.parse(config.preprocess(str));
                     config.parser.mode = false;
                     sideArray.push([evaled]);
                   } else {
@@ -501,7 +504,7 @@ let config = {
       function appendRow(iter, cidx) {
         if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
-          let cond = config.parser.formula.parse(iter.condition.trim(), { startRule: 'Condition' });
+          let cond = config.parser.formula.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
             iter.values[cidx].push(null);
@@ -509,7 +512,7 @@ let config = {
           }
         }
         config.parser.mode = true;
-        let val = config.parser.formula.parse(iter.formula.trim(), { startRule: 'Formula' });
+        let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
         config.parser.mode = false;
         iter.values[cidx].push(val);
       }
@@ -617,7 +620,7 @@ let config = {
     C @ B#` + '\n'));
   */
   config.parser.mode = false;
-  statementParser.parse(`
+  statementParser.parse(config.preprocess(`
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
 PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
@@ -635,7 +638,7 @@ R @ 1
 PX @ '-L* CN | A <= H*R [0]
 PY @ ' + L * SN | A <= H*R [0]
 LINE @$1 [PX'][PY'][PX][PY]
-`.trim());
+`));
   /*
 
 A	 @ '+1 [0]
