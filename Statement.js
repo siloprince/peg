@@ -94,32 +94,35 @@ let config = {
       }
       function processAndOr(head, tail) {
         return tail.reduce(function (result, element) {
-          if (element[1] === 'and') { return result && element[2]; }
-          if (element[1] === 'or') { return result || element[2]; }
+          if (element[1] === 'and') { return result && element[3]; }
+          if (element[1] === 'or') { return result || element[3]; }
         }, head);
       }
       function processAddSub(head, tail) {
         return tail.reduce(function (result, element) {
-          if (element[1] === '+') { return result + element[2]; }
-          if (element[1] === '-') { return result - element[2]; }
+          if (element[1] === '+') { return result + element[3]; }
+          if (element[1] === '-') { return result - element[3]; }
         }, head);
       }
       function processMulDiv(head, tail) {
         return tail.reduce(function (result, element) {
-          if (element[1] === '*') { return result * element[2]; }
-          if (element[1] === '/') { return result / element[2]; }
+          if (Array.isArray(element[1])) {
+            element[1] = '*';
+          }
+          if (element[1] === '*') { return result * element[3]; }
+          if (element[1] === '/') { return result / element[3]; }
         }, head);
       }
       function processFuncCond(head, tail) {
         return tail.reduce(function (result, element) {
           let func = element[1];
           // TODO: dynamic func operator
-          if (func === '<') { return result < element[2]; }
-          if (func === '<=') { return result <= element[2]; }
-          if (func === '=') { return result === element[2]; }
-          if (func === '>') { return result > element[2]; }
-          if (func === '>=') { return result >= element[2]; }
-          if (func === '<>') { return result !== element[2]; }
+          if (func === '<') { return result < element[3]; }
+          if (func === '<=') { return result <= element[3]; }
+          if (func === '=') { return result === element[3]; }
+          if (func === '>') { return result > element[3]; }
+          if (func === '>=') { return result >= element[3]; }
+          if (func === '<>') { return result !== element[3]; }
         }, head);
       }
       function processFuncCondEx(func, aidx, _args) {
@@ -138,7 +141,7 @@ let config = {
         return tail.reduce(function (result, element) {
           let func = element[1].join('');
           // TODO: dynamic func operator
-          if (func === 'mod') { return result % element[2]; }
+          if (func === 'mod') { return result % element[3]; }
         }, head);
       }
       function processFuncEx(func, aidx, _args) {
@@ -164,8 +167,8 @@ let config = {
       }
       function processDash(seq, tail) {
         let result = tail.reduce(function (result, element) {
-          var op = element[1];
-          var arg = element[2][0];
+          var op = element[0];
+          var arg = element[1][0];
           if (typeof (arg) === 'undefined') {
             arg = 1;
           }
@@ -204,9 +207,9 @@ let config = {
           ret = ret.concat(head);
         }
         for (let ti = 0; ti < tail.length; ti++) {
-          for (let tj = 0; tj < tail[ti][2].length; tj++) {
-            if (tail[ti][2][tj] !== null && typeof (tail[ti][2][tj]) !== 'undefined') {
-              ret = ret.concat(tail[ti][2][tj]);
+          for (let tj = 0; tj < tail[ti][3].length; tj++) {
+            if (tail[ti][3][tj] !== null && typeof (tail[ti][3][tj]) !== 'undefined') {
+              ret = ret.concat(tail[ti][3][tj]);
             }
           }
         }
@@ -622,22 +625,22 @@ let config = {
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
 A	 @ '+1 [0]
-PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
-PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
+PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
 P @ PA/PB	
 H @ 11	
 G @ 2* P#/H
-CB @ -' * G*G / (2*A * (2*A-1)) [1]
+CB @ -' G G / (2A(2A-1)) [1]
 C @ ' + CB [1]
-SB @ -2*' * G*G / (2*A * (2*A+1)) [G#]
+SB @ -2' G G / (2A(2A+1)) [G#]
 S @ S' + SB [G#]
-CN @ 2*C#* ' - '' [C#][0]
-SN @ 2*C#* ' - '' [-S#] [0]
+CN @ 2C# ' - '' [C#][0]
+SN @ 2C# ' - '' [-S#] [0]
 L	@ 20
 R @ 1
-PX @ '-L* CN | A <= H*R [0]
-PY @ ' + L * SN | A <= H*R [0]
-LINE @$1 [PX'][PY'][PX][PY]
+PX @ '-L CN | A <= H R [0]
+PY @ ' + L SN | A <= H R [0]
+LINE @ $1 [PX'][PY'][PX][PY]
 `));
   /*
 
@@ -699,6 +702,7 @@ or
   function getStatementStr(funcStr) {
 
     let signed = '\\+\\-';
+    let sp = ' \\t';
     let wsp = ' \\t\\n\\r';
     let dash = `"'"`;
     let backdash = "'`'";
@@ -732,13 +736,13 @@ TODO:
 
 */
 Statement
-= seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
   processStatement(seq,form,formcond,argvs);
 }
 
 Condition
-= head:FuncCondTerm tail:( _ ('and' / 'or') FuncCondTerm)*
+= head:FuncCondTerm tail:( _ ('and' / 'or') _ FuncCondTerm)*
 {
   if (config.parser.mode) {
     return processAndOr(head, tail);
@@ -750,7 +754,7 @@ Condition
 }
 
 Formula
-= head:FuncTerm tail:( _ ('+' / '-')  FuncTerm)*
+= head:FuncTerm tail:( _ ('+' / '-') _ FuncTerm)*
 {
   if (config.parser.mode) {
     return processAddSub(head, tail);
@@ -760,7 +764,7 @@ Formula
     return ret;
   }
 }
-/ tail:( _ ('+' / '-') FuncTerm)+
+/ tail:( _ ('+' / '-') _ FuncTerm)+
 {
   if (config.parser.mode) {
     return processAddSub(0, tail);
@@ -783,7 +787,7 @@ FuncCondTerm
 }
 
 FuncCondTermSub
-= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) Term)+
+= head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) _ Term)+
 {
   if (config.parser.mode) {
     let ret = processFuncCond(head, tail);
@@ -800,7 +804,7 @@ FuncCondTermSub
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '[' Term _ ']')+ 
+/ _ op:[a-z]+ tail:( _ '[' _ Term _ ']')+ 
 {
   if (config.parser.mode) {
     return processFuncCondEx(op.join(''),2, tail);
@@ -810,7 +814,7 @@ FuncCondTermSub
 }
 
 FuncTerm
-= head:Term tail:( _ [a-z]+ Term)*
+= head:Term tail:( _ [a-z]+ _ Term)*
 {
   if (config.parser.mode) {
     return processFunc(head, tail);
@@ -826,7 +830,7 @@ FuncTerm
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '{' Term _ '}')+
+/ _ op:[a-z]+ tail:( _ '{' _ Term _ '}')+
 {
   if (config.parser.mode) {
     return processFuncEx(op.join(''), 2, args);
@@ -836,7 +840,15 @@ FuncTerm
 }
 
 Term
-= head:Factor tail:( _ ('*' / '/') Factor )* 
+= _ head:UnsignedNumber tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) / [${sp}]* [${sp}]* [${sp}]* Factor)* 
+{
+  if (config.parser.mode) {
+    return processMulDiv(head, tail);
+  } else {
+    return processTail(head, tail);
+  }
+}
+/ _ head:Factor tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) /  [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
   if (config.parser.mode) {
     return processMulDiv(head, tail);
@@ -846,8 +858,7 @@ Term
 }
 
 Factor
-= _ '(' expr:Formula _ ')' { return expr; }
-  / UnsignedNumber
+= '(' expr:Formula _ ')' { return expr; }
   / SysOperatedDoller
   / SysOperatedHash
   / SysOperatedDash
@@ -861,7 +872,7 @@ Factor
   }
 
 SysOperatedDash
-= seq:Sequence tail:( _ [${dash}${backdash}] SysIndex*)+ 
+= seq:Sequence tail:( [${dash}${backdash}] SysIndex*)+ 
 {
   if (config.parser.mode) {
     return processDash (seq,tail);
@@ -872,7 +883,7 @@ SysOperatedDash
     }];
   }
 }
-/ tail:( _ [${dash}${backdash}]  SysIndex*)+ 
+/ tail:([${dash}${backdash}]  SysIndex*)+ 
 {
   if (config.parser.mode) {
     return processDash (self(),tail);
@@ -882,7 +893,7 @@ SysOperatedDash
 }
 
 SysOperatedDoller
-= seq:Sequence _ op:'$' idx:SysIndex?
+= seq:Sequence op:'$' idx:SysIndex?
 {
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
@@ -903,7 +914,7 @@ SysOperatedDoller
 }
 
 SysOperatedHash
-= seq:Sequence _ op:'#' idx:SysIndex? 
+= seq:Sequence op:'#' idx:SysIndex? 
 {
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
@@ -934,7 +945,7 @@ SysIndex
 }
 
 Sequence 
-= _ seq:[A-Z]+ { 
+= seq:[A-Z]+ { 
   if (config.parser.mode) {
     return config.iteraita[seq.join('')];
   } else { 
@@ -946,7 +957,7 @@ Sequence
 }
 
 UnsignedNumber
-= _ $( _UnsignedFloat / _UnsignedInt)
+= $( _UnsignedFloat / _UnsignedInt)
 {
   if (config.parser.mode) {
     return parseFloat(text());
@@ -969,6 +980,7 @@ _UnsignedInt
 
 _
 = [${wsp}]*
+
 `;
   }
 })(console,
