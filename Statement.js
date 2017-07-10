@@ -506,11 +506,12 @@ let config = {
                       let mod = mi % sideArray[ai].length;
                       tmpargv.push((sideArray[ai][mod]));
                     }
-                    prepareColumn(decl, dj, minSides, iter, tmpargv);
+                    prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
+
                     config.state.here = mi;
                     console.log(iters);
-                    console.log(iters.name+' '+mi);
-                    appendRow(iters[mi]);
+                    console.log(minSides + ' ' + (dj + mi));
+                    appendRow(iters[dj + mi]);
                   }
                   config.state.here = 0;
                 }
@@ -520,18 +521,21 @@ let config = {
         }
         return;
       }
-      function prepareColumn(decl, idx, max, iter, argvs) {
+      function prepareColumn(decl, idx, max, loc, iter, argvs) {
         let new_iter;
-        console.log(decl+' '+idx+' '+max);
-        // TODO:
-        if (max===1) {
+
+        if (max === 1) {
           new_iter = iter;
         } else {
-          let iters = config.iteraitas[iter.label];
-          let current_iter = iters[idx];
-          new_iter = JSON.parse(JSON.stringify(current_iter));
-          iters.splice(idx-1,1,new_iter);
-console.log(new_iter);
+          if (idx === 0) {
+            new_iter = iter;
+          } else {
+            let iters = config.iteraitas[iter.label];
+            let current_iter = iters[loc];
+            new_iter = JSON.parse(JSON.stringify(current_iter));
+            iters.splice(loc, 0, new_iter);
+            console.log(iters);
+          }
         }
         for (let ai = 0; ai < argvs.length; ai++) {
           new_iter.inits.push(argvs[ai]);
