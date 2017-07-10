@@ -294,7 +294,7 @@ let config = {
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        config.iteraitas[declLabel].push(iter);
+        config.iteraitas[declLabel].unshift(iter);
         calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
@@ -666,6 +666,7 @@ let config = {
 C @ 1
 B @ 1 | 2<3 4 | 5<6 7 | (8 < 9)
 D @ 1
+B @ 33
 `));
   /*
    
