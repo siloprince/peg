@@ -238,12 +238,17 @@ let config = {
               let formula = more[mi][0];
               _formulaStrArray.push(formula.pop().text);
               _formulaArray.push(formula);
-              let morecond = more[mi][1];
-              if (morecond && morecond.length > 0) {
-                _condStrArray.push(morecond[2].pop().text);
-                _condArray.push(morecond[2]);
+              let morecond = more[mi][3];
+              if (morecond) {
+                _condStrArray.push(morecond.pop().text);
+                _condArray.push(morecond);
               }
             }
+          }
+          let lastformula = formcond[4];
+          if (lastformula) {
+            _formulaStrArray.push(lastformula.pop().text);
+            _formulaArray.push(lastformula);
           }
         }
         let _argvsStrArray = [];
@@ -663,24 +668,9 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  A	 @ '+1 [0]
-  A  @ 2
-  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-  P @ PA/PB	
-  H @ 11	
-  G @ 2* P#/H
-  CB @ -' G G / (2A(2A-1)) [1]
-  C @ ' + CB [1]
-  SB @ -2 ' G G / (2A(2A+1)) [G#]
-  S @ ' + SB [G#]
-  CN @ 2C# ' - '' [C#][0]
-  SN @ 2C# ' - '' [-S#] [0]
-  L	@ 20
-  R @ 1
-  PX @ '-L CN | A <= H R [0]
-  PY @ ' + L SN | A <= H R [0]
-  LINE @  $1 [PX'][PY'][PX][PY]
+  B @ 1
+  Q @ 1 | 2 | 3 
+  A @ 1
 `));
   /*
   A	 @ '+1 [0]
@@ -791,11 +781,11 @@ TODO:
 * multiple Conditions
 * Conditions without expr
 * function and operator definition with {}
- A ( _ '|' B  ( C _ '|' D )* )?
+ A ( _ '|' B?  ( C ( _ '|' D?) )* E? )?
 
 */
 Statement
-= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? ) )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
   processStatement(seq,form,formcond,argvs);
 }
