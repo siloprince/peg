@@ -19,7 +19,7 @@ let config = {
   starts: [],
   constval: 4,
   max: 4,
-  iteraita: {},
+  iteraitas: {},
   decls: [],
   depend: {},
   preprocess: function (str) {
@@ -42,57 +42,58 @@ let config = {
         return (_ridx + config.max * 10) % config.max;
 
       }
-      function getCidx(obj, _cidx) {
+      function getCidx(iters, _cidx) {
         var cidx = _cidx;
         if (typeof (_cidx) === 'undefined') {
-          cidx = (_cidx + obj.values.length * 10) % obj.values.length;
+          cidx = (_cidx + iters.length * 10) % iters.length;
         }
         return cidx;
       }
       function self() {
-        var ret = config.iteraita[config.state.self][config.state.selfIdx];
+        var ret = config.iteraitas[config.state.self][config.state.selfIdx];
         return ret;
       }
-      function val(obj, _cidx, ridx) {
-        var cidx = getCidx(obj, _cidx);
+      function val(iter, _cidx, ridx) {
+        var iters = config.iteraitas[iter.label];
+        var cidx = getCidx(iters, _cidx);
         if (typeof (ridx) === 'undefined') {
-          return obj.values[cidx][now()];
+          return iters[cidx].values[now()];
         }
         if (ridx >= 0) {
-          return obj.values[cidx][getRidx(ridx)];
+          return iters[cidx].values[getRidx(ridx)];
         } else {
-          return obj.inits[cidx][getRidx(obj.inits[cidx].length + ridx)];
+          return iters[cidx].inits[getRidx(iters[cidx].inits.length + ridx)];
         }
       }
-      function lastval(obj) {
-        if (obj.values.length === 0) {
+      function lastval(iter) {
+        if (iter.values.length === 0) {
           return null;
         } else {
           let here = 0;
-          let idx = obj.values[here].lastIndexOf(null);
+          let idx = iter.values.lastIndexOf(null);
           if (idx === -1) {
-            return obj.values[here][obj.values.length - 1];
+            return iter.values[iter.values.length - 1];
           } else {
-            return obj.values[here][idx - 1];
+            return iter.values[idx - 1];
           }
         }
       }
-      function lastini(obj) {
-        if (obj.inits.length === 0) {
+      function lastini(iter) {
+        if (iter.inits.length === 0) {
           return 0;
         } else {
-          let here = here();
-          let idx = obj.inits[here].indexOf(null);
+          let idx = iter.inits.indexOf(null);
           if (idx === -1) {
-            return obj.inits[here][obj.inits.length - 1];
+            return iter.inits[iter.inits.length - 1];
           } else {
-            return obj.inits[here][idx - 1];
+            return iter.inits[idx - 1];
           }
         }
       }
-      function ini(obj, _cidx, ridx) {
-        var cidx = getCidx(obj, _cidx);
-        return obj.inits[cidx][ridx];
+      function ini(iter, _cidx, ridx) {
+        var iters = config.iteraitas[iter.label];
+        var cidx = getCidx(iters, _cidx);
+        return iters[cidx].inits[ridx];
       }
       function processAndOr(head, tail) {
         return tail.reduce(function (result, element) {
@@ -217,7 +218,6 @@ let config = {
         }
         return ret;
       }
-
       function processStatement(seq, form, formcond, argvs) {
         if (config.parser.mode) {
           return;
@@ -273,32 +273,38 @@ let config = {
             _argvsCondArray.push([]);
           }
         }
-        processStatementSub(seq, _formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray, _argvsStrArray, _argvsCondStrArray);
-      }
-      function processStatementSub(seq, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
         let declLabel = seq[0].name;
         if (!(declLabel in config.state.decl_serial)) {
           config.state.decl_serial[declLabel] = -1;
-          config.iteraita[declLabel] = [];
+          config.iteraitas[declLabel] = [];
         }
+        for (let di = 0; di < _formulaArray.length; di++) {
+          processStatementSub(declLabel,
+            _formulaArray[di], _condArray[di], _argvsArray, _argvsCondArray,
+            _formulaStrArray[di], _condStrArray[di], _argvsStrArray, _argvsCondStrArray);
+        }
+      }
+      function processStatementSub(declLabel, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
         config.state.decl_serial[declLabel]++;
         let decl = declLabel + '_' + config.state.decl_serial[declLabel];
         config.decls.push(decl);
         let iter = {
+          label: declLabel,
+          name: decl,
           inits: [],
           values: [],
-          formula: formulaStrArray[0],
-          condition: condStrArray[0],
+          formula: formulaStr,
+          condition: condStr,
           argvs: argvsStrArray,
           argvsCondition: argvsCondStrArray,
-          formulaDep: formulaDepArray[0],
-          conditionDep: condDepArray[0],
+          formulaDep: formulaDep,
+          conditionDep: condDep,
           argvsDep: argvsDepArray,
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        config.iteraita[declLabel].push(iter);
-        calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
+        config.iteraitas[declLabel].push(iter);
+        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
@@ -315,7 +321,7 @@ let config = {
             continue;
           }
           let _decl = '_' + config.state.serial++;
-          config.state.decl_serial[_decl]=0;
+          config.state.decl_serial[_decl] = 0;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
             if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
               iter.argvsDep.push([{ name: _decl, type: 'seqend_variargv' }]);
@@ -331,7 +337,9 @@ let config = {
           config.decls.push(_decl);
           iter.sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
-          config.iteraita[_decl] = [{
+          config.iteraitas[_decl] = [{
+            label: _decl,
+            name: _decl,
             inits: [],
             values: [],
             formula: [argvsStrArray[ai]][0],
@@ -345,18 +353,14 @@ let config = {
           calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
         }
         // recalculate
-        calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
+        calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
 
         return;
-        function calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray) {
+        function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
           let depend = [];
-          for (let fi = 0; fi < formulaDepArray.length; fi++) {
-            depend = depend.concat(formulaDepArray[fi]);
-          }
-          if (condDepArray) {
-            for (let ci = 0; ci < condDepArray.length; ci++) {
-              depend = depend.concat(condDepArray[ci]);
-            }
+          depend = depend.concat(formulaDep);
+          if (condDep) {
+            depend = depend.concat(condDep);
           }
           if (argvsDepArray) {
             for (let ai = 0; ai < argvsDepArray.length; ai++) {
@@ -421,7 +425,7 @@ let config = {
       }
       function processStatements() {
         run(10);
-        console.log(config.iteraita);
+        console.log(config.iteraitas);
         return;
       }
       function run(_max, _limit) {
@@ -445,108 +449,110 @@ let config = {
         max = (max + 1) * config.max;
         for (let i = 0; i < max + config.max; i++) {
           config.state.now = i % max;
-          for (let di = 0; di < config.decls.length; di++) {
-            let decl = config.decls[di];
-            let declLabelIdx = parseDecl(decl);
-            let declLabel = declLabelIdx[0];
-            let declIdx = declLabelIdx[1];
-            config.state.self = declLabel;
-            config.state.selfIdx = declIdx;
-            let iter = config.iteraita[declLabel][declIdx];
-            let argvs = iter.argvs;
-            let start = config.starts[decl] * config.max;
-            if (start <= i && i <= start + config.max - 1) {
-              if (start === i) {
-                let sideArray = [];
-                let minSides = 0;
-                let constargv = true;
-                for (let ai = 0; ai < argvs.length; ai++) {
-                  if (!(ai in iter.sideSequences)) {
-                    let str = argvs[ai];
-                    config.parser.mode = true;
-                    let evaled = config.parser.formula.parse(config.preprocess(str));
-                    config.parser.mode = false;
-                    sideArray.push([evaled]);
-                  } else {
-                    constargv = false;
-                    let _decl = iter.sideSequences[ai];
-                    let tmp = [];
-                    for (let ii = 0; ii < config.iteraita[_decl][0].values.length; ii++) {
-                      tmp = tmp.concat(config.iteraita[_decl][0].values[ii]);
-                    }
-                    if (minSides) {
-                      minSides = Math.min(minSides, tmp.length);
-                    } else {
-                      minSides = tmp.length;
-                    }
-                    sideArray.push(tmp);
+          for (let dk in config.iteraitas) {
+            let iters = config.iteraitas[dk];
+            let tmp_iters = [];
+            for (let dj = 0; dj < iters.length; dj++) {
+              tmp_iters.push(iters[dj]);
+            }
+            for (let dj = 0; dj < tmp_iters.length; dj++) {
+              let iter = tmp_iters[dj];
+              let decl = iter.name;
+              let declLabelIdx = parseDecl(decl);
+              let declIdx = declLabelIdx[1];
+              config.state.self = iter.label;
+              // here or selfIndx?
+              config.state.selfIdx = dj;
 
-                    //console.log(decl + '::' + _decl + ':' + minSides);
-                  }
-                }
-                if (constargv) {
-                  minSides = 1;
-                }
-                for (let mi = 0; mi < minSides; mi++) {
-                  let tmpargv = [];
+              let argvs = iter.argvs;
+              let start = config.starts[decl] * config.max;
+              if (start <= i && i <= start + config.max - 1) {
+                if (start !== i) {
+                  appendRow(iter);
+                } else {
+                  let sideArray = [];
+                  let minSides = 0;
+                  let constargv = true;
                   for (let ai = 0; ai < argvs.length; ai++) {
-                    let mod = mi % sideArray[ai].length;
-                    tmpargv.push((sideArray[ai][mod]));
-                  }
-                  if (decl.indexOf('_') !== 0) {
-                    appendColumn(iter, tmpargv);
-                  } else {
-                    let varimax = 1;
-                    let varis = [];
-                    if (iter.formulaDep && iter.formulaDep.length > 0) {
-                      varis = varis.concat(iter.formulaDep);
-                    }
-                    if (iter.conditionDep && iter.conditionDep.length > 0) {
-                      varis = varis.concat(iter.conditionDep);
-                    }
-                    if (varis.length > 0) {
-                      for (let vi = 0; vi < varis.length; vi++) {
-                        if ('name' in varis[vi]) {
-                          let vari = varis[vi].name;
-                          // TODO: basically use 0 if not specified by "?"
-                          varimax = Math.max(varimax, config.iteraita[vari][0].values.length);
-                        }
+                    if (!(ai in iter.sideSequences)) {
+                      let str = argvs[ai];
+                      config.parser.mode = true;
+                      let evaled = config.parser.formula.parse(config.preprocess(str));
+                      config.parser.mode = false;
+                      sideArray.push([evaled]);
+                    } else {
+                      constargv = false;
+                      let _decl = iter.sideSequences[ai];
+                      // _decl is always 0
+                      let _iter = config.iteraitas[_decl][0];
+                      let tmp = [];
+                      for (let ii = 0; ii < _iter.values.length; ii++) {
+                        tmp.push(_iter.values[ii]);
                       }
-                    }
-                    for (let vi = 0; vi < varimax; vi++) {
-                      appendColumn(iter, tmpargv);
+                      if (minSides) {
+                        minSides = Math.min(minSides, tmp.length);
+                      } else {
+                        minSides = tmp.length;
+                      }
+                      sideArray.push(tmp);
                     }
                   }
+                  if (constargv) {
+                    minSides = 1;
+                  }
+                  for (let mi = 0; mi < minSides; mi++) {
+                    let tmpargv = [];
+                    for (let ai = 0; ai < argvs.length; ai++) {
+                      let mod = mi % sideArray[ai].length;
+                      tmpargv.push((sideArray[ai][mod]));
+                    }
+                    prepareColumn(decl, dj, minSides, iter, tmpargv);
+                    config.state.here = mi;
+                    console.log(iters);
+                    console.log(iters.name+' '+mi);
+                    appendRow(iters[mi]);
+                  }
+                  config.state.here = 0;
                 }
               }
-              for (let ii = 0; ii < iter.values.length; ii++) {
-                config.state.here = ii;
-                appendRow(iter, ii);
-              }
-              config.state.here = 0;
             }
           }
         }
         return;
       }
-      function appendColumn(iter, argvs) {
-        iter.inits.push(argvs.concat([]));
-        iter.values.push([]);
+      function prepareColumn(decl, idx, max, iter, argvs) {
+        let new_iter;
+        console.log(decl+' '+idx+' '+max);
+        // TODO:
+        if (max===1) {
+          new_iter = iter;
+        } else {
+          let iters = config.iteraitas[iter.label];
+          let current_iter = iters[idx];
+          new_iter = JSON.parse(JSON.stringify(current_iter));
+          iters.splice(idx-1,1,new_iter);
+console.log(new_iter);
+        }
+        for (let ai = 0; ai < argvs.length; ai++) {
+          new_iter.inits.push(argvs[ai]);
+        }
+        new_iter.values = [];
       }
-      function appendRow(iter, cidx) {
+      function appendRow(iter) {
+        console.log(iter);
         if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
           let cond = config.parser.formula.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
-            iter.values[cidx].push(null);
+            iter.values.push(null);
             return;
           }
         }
         config.parser.mode = true;
         let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
         config.parser.mode = false;
-        iter.values[cidx].push(val);
+        iter.values.push(val);
       }
       function setStart(decls, _depend, starts) {
         let depend = {};
@@ -687,48 +693,50 @@ PY @ ' + L SN | A <= H R [0]
 LINE @ $1 [PX'][PY'][PX][PY]
 `));
   /*
-TODO: S' と 'で挙動が違う
-
-A	 @ '+1 [0]
-A  @ 2
-PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-P @ PA/PB	
-H @ 11	
-G @ 2* P#/H
-CB @ -' G G / (2A(2A-1)) [1]
-C @ ' + CB [1]
-SB @ -2' G G / (2A(2A+1)) [G#]
-S @ ' + SB [G#]
-CN @ 2C# ' - '' [C#][0]
-SN @ 2C# ' - '' [-S#] [0]
-L	@ 20
-R @ 1
-PX @ '-L CN | A <= H R [0]
-PY @ ' + L SN | A <= H R [0]
-LINE @ $1 [PX'][PY'][PX][PY]
-
-
-A	 @ '+1 [0]
-PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
-PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
-P @ PA/PB	
-H @ 11	
-G @ 2* P#/H
-CB @ -' * G*G / (2*A * (2*A-1)) [1]
-C @ ' + CB [1]
-SB @ -2*' * G*G / (2*A * (2*A+1)) [G#]
-S @ S' + SB [G#]
-CN @ 2*C#* ' - '' [C#][0]
-SN @ 2*C#* ' - '' [-S#] [0]
-L	@ 20
-R @ 1
-PX @ '-L* CN | A <= H*R [0]
-PY @ ' + L * SN | A <= H*R [0]
-LINE @ 
-
-$3+1-($3 mod 1) | 
-
+   
+   
+  TODO: S' と 'で挙動が違う
+   
+  A	 @ '+1 [0]
+  A  @ 2
+  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
+  P @ PA/PB	
+  H @ 11	
+  G @ 2* P#/H
+  CB @ -' G G / (2A(2A-1)) [1]
+  C @ ' + CB [1]
+  SB @ -2' G G / (2A(2A+1)) [G#]
+  S @ ' + SB [G#]
+  CN @ 2C# ' - '' [C#][0]
+  SN @ 2C# ' - '' [-S#] [0]
+  L	@ 20
+  R @ 1
+  PX @ '-L CN | A <= H R [0]
+  PY @ ' + L SN | A <= H R [0]
+  LINE @ $1 [PX'][PY'][PX][PY]
+   
+   
+  A	 @ '+1 [0]
+  PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
+  PB @ 6* ' +  (2*A-1)*(2*A-1)* '' [0] [1]
+  P @ PA/PB	
+  H @ 11	
+  G @ 2* P#/H
+  CB @ -' * G*G / (2*A * (2*A-1)) [1]
+  C @ ' + CB [1]
+  SB @ -2*' * G*G / (2*A * (2*A+1)) [G#]
+  S @ S' + SB [G#]
+  CN @ 2*C#* ' - '' [C#][0]
+  SN @ 2*C#* ' - '' [-S#] [0]
+  L	@ 20
+  R @ 1
+  PX @ '-L* CN | A <= H*R [0]
+  PY @ ' + L * SN | A <= H*R [0]
+  LINE @ 
+   
+  $3+1-($3 mod 1) | 
+   
     ((
       (
         ($0-$2)*($0-$2)<0.0001
@@ -745,24 +753,24 @@ $3+1-($3 mod 1) |
     ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
   )   
     )
-
-$3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
+   
+  $3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
   |
-(
- (
+  (
+  (
    ($0-$2)*($0-$2)>=0.0001)
   and 
   ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-)
-or
-( 
+  )
+  or
+  ( 
   (($1-$3)*($1-$3)<0.0001)
   and 
   ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-)
- [PX'][PY'][PX][PY]
-
-*/
+  )
+  [PX'][PY'][PX][PY]
+   
+  */
 
   function getStatementStr(funcStr) {
 
@@ -1013,7 +1021,7 @@ Sequence
 = seq:[A-Z]+ { 
   if (config.parser.mode) {
     // TODO: use 0 if not specified by '?'
-    return config.iteraita[seq.join('')][0];
+    return config.iteraitas[seq.join('')][0];
   } else { 
     return [{
       type: 'sequence',
