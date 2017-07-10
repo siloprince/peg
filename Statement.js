@@ -420,6 +420,7 @@ let config = {
         return null;
       }
       function processStatements() {
+        console.log(config.depend);
         run(10);
         console.log(config.iteraitas);
         return;
@@ -669,8 +670,8 @@ let config = {
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
   B @ 1
-  Q @ 1 | 2 | 3 
-  A @ 1
+  Q @ 1 | 2 | A
+  A @ 6
 `));
   /*
   A	 @ '+1 [0]
