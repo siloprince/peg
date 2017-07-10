@@ -201,7 +201,6 @@ let config = {
           if (arg === null) {
             return lastini(seq);
           }
-          console.log(here());
           return ini(seq, here(), arg);
         }
       }
@@ -511,7 +510,6 @@ let config = {
                     prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
 
                     config.state.here = dj;
-                    console.log(decl+'>>'+config.state.here);
                     appendRow(iters[dj]);
                   }
                   config.state.here = 0;
@@ -533,7 +531,7 @@ let config = {
           } else {
             let iters = config.iteraitas[iter.label];
             new_iter = JSON.parse(JSON.stringify(iter));
-            iters.splice(loc-1, 0, new_iter);
+            iters.splice(loc, 0, new_iter);
           }
         }
         new_iter.inits.length = 0;
