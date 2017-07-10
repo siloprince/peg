@@ -669,7 +669,7 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  B @ 1
+  B @ A + 1
   Q @ 1 | 2 | A
   A @ 6
 `));
