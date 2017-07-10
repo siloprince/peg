@@ -508,7 +508,7 @@ let config = {
                     }
                     prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
 
-                    config.state.here = mi;
+                    config.state.here = dj + mi;
                     appendRow(iters[dj + mi]);
                   }
                   config.state.here = 0;
@@ -553,6 +553,8 @@ let config = {
         config.parser.mode = true;
         let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
         config.parser.mode = false;
+        console.log(iter.inits);
+        console.log(iter.formula+' : '+val);
         iter.values.push(val);
       }
       function setStart(decls, _depend, starts) {
