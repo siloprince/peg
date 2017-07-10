@@ -509,8 +509,6 @@ let config = {
                     prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
 
                     config.state.here = mi;
-                    console.log(iters);
-                    console.log(minSides + ' ' + (dj + mi));
                     appendRow(iters[dj + mi]);
                   }
                   config.state.here = 0;
@@ -534,16 +532,15 @@ let config = {
             let current_iter = iters[loc];
             new_iter = JSON.parse(JSON.stringify(current_iter));
             iters.splice(loc, 0, new_iter);
-            console.log(iters);
           }
         }
+        new_iter.inits.length = 0;
         for (let ai = 0; ai < argvs.length; ai++) {
           new_iter.inits.push(argvs[ai]);
         }
         new_iter.values = [];
       }
       function appendRow(iter) {
-        console.log(iter);
         if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
           let cond = config.parser.formula.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
