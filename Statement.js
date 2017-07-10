@@ -228,7 +228,7 @@ let config = {
         let _condArray = [];
         if (formcond) {
           let cond1 = formcond[2];
-          if (cond1 && cond1.length ===1) {
+          if (cond1 && cond1.length === 1) {
             _condStrArray.push(cond1.pop().text);
             _condArray.push(cond1);
           }
@@ -663,10 +663,24 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-C @ 1
-B @ 1 | 2<3 4 | 5<6 7 | (8 < 9)
-D @ 1
-B @ 33
+  A	 @ '+1 [0]
+  A  @ 2
+  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
+  P @ PA/PB	
+  H @ 11	
+  G @ 2* P#/H
+  CB @ -' G G / (2A(2A-1)) [1]
+  C @ ' + CB [1]
+  SB @ -2 ' G G / (2A(2A+1)) [G#]
+  S @ ' + SB [G#]
+  CN @ 2C# ' - '' [C#][0]
+  SN @ 2C# ' - '' [-S#] [0]
+  L	@ 20
+  R @ 1
+  PX @ '-L CN | A <= H R [0]
+  PY @ ' + L SN | A <= H R [0]
+  LINE @  $1 [PX'][PY'][PX][PY]
 `));
   /*
    
@@ -786,7 +800,6 @@ TODO:
 Statement
 = _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? ) )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
-  console.log(formcond);
   processStatement(seq,form,formcond,argvs);
 }
 
@@ -925,11 +938,15 @@ SysOperatedDash
 {
   if (config.parser.mode) {
     return processDash (seq,tail);
-  } else { 
-    return [{
-      type: 'seqstart',
-      name: seq[0].name,
-    }];
+  } else {
+    if (seq[0].name !== config.state.self) {
+      return [{
+        type: 'seqstart',
+        name: seq[0].name,
+      }];
+    } else {
+      return [];
+    }
   }
 }
 / tail:([${dash}${backdash}]  SysIndex*)+ 
@@ -947,10 +964,14 @@ SysOperatedDoller
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
   } else {
-    return [{
-      type: 'seqend',
-      name: seq[0].name,
-    }]; 
+    if (seq[0].name !== config.state.self) {
+      return [{
+        type: 'seqend',
+        name: seq[0].name,
+      }]; 
+    } else {
+      return [{}];
+    }
   }
 }
 / _ op:'$' idx:SysIndex*
@@ -968,10 +989,14 @@ SysOperatedHash
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
   } else {
-    return [{
-      type: 'seqend',
-      name: seq[0].name,
-    }];
+    if (seq[0].name !== config.state.self) {
+      return [{
+        type: 'seqend',
+        name: seq[0].name,
+      }];
+    } else {
+      return [{}];
+    }
   }
 }
 / _ op:'#' idx:SysIndex* 
@@ -998,7 +1023,8 @@ Sequence
   if (config.parser.mode) {
     // TODO: use 0 if not specified by '?'
     return config.iteraitas[seq.join('')][0];
-  } else { 
+  } else {
+    config.state.self = seq.join('');
     return [{
       type: 'sequence',
       name: seq.join(''),
