@@ -529,9 +529,8 @@ let config = {
             new_iter = iter;
           } else {
             let iters = config.iteraitas[iter.label];
-            let current_iter = iters[loc];
-            new_iter = JSON.parse(JSON.stringify(current_iter));
-            iters.splice(loc, 0, new_iter);
+            new_iter = JSON.parse(JSON.stringify(iter));
+            iters.splice(loc-1, 0, new_iter);
           }
         }
         new_iter.inits.length = 0;
