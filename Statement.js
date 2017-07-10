@@ -227,30 +227,21 @@ let config = {
         let _condStrArray = [];
         let _condArray = [];
         if (formcond) {
-          for (let fi = 0; fi < formcond.length; fi++) {
-            let _formcond = formcond[fi];
-            let cond1 = _formcond[2];
-            if (cond1 && cond1.length > 0) {
-              _condStrArray.push(cond1.pop().text);
-              _condArray.push(cond1);
-            }
-            let more = _formcond[3];
-            if (more && more.length > 0) {
-              let morecond = more[1];
-              let formula = more[0];
+          let cond1 = formcond[2];
+          if (cond1 && cond1.length ===1) {
+            _condStrArray.push(cond1.pop().text);
+            _condArray.push(cond1);
+          }
+          let more = formcond[3];
+          if (more && more.length > 0) {
+            for (let mi = 0; mi < more.length; mi++) {
+              let formula = more[mi][0];
+              _formulaStrArray.push(formula.pop().text);
+              _formulaArray.push(formula);
+              let morecond = more[mi][1];
               if (morecond && morecond.length > 0) {
-                let cond2 = morecond[2];
-                _formulaStrArray.push(formula.pop().text);
-                _formulaArray.push(formula);
-
-                let _cond2Str = '';
-                let _cond2 = [];
-                if (cond2 && cond2.length > 0) {
-                  _cond2Str = cond2[2].pop().text;
-                  _cond2 = cond2[2];
-                }
-                _condStrArray.push(_cond2Str);
-                _condArray.push(_cond2);
+                _condStrArray.push(morecond[2].pop().text);
+                _condArray.push(morecond[2]);
               }
             }
           }
@@ -673,25 +664,7 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-
-A	 @ '+1 [0]
-A  @ 2
-PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-P @ PA/PB	
-H @ 11	
-G @ 2* P#/H
-CB @ -' G G / (2A(2A-1)) [1]
-C @ ' + CB [1]
-SB @ -2' G G / (2A(2A+1)) [G#]
-S @ ' + SB [G#]
-CN @ 2C# ' - '' [C#][0]
-SN @ 2C# ' - '' [-S#] [0]
-L	@ 20
-R @ 1
-PX @ '-L CN | A <= H R [0]
-PY @ ' + L SN | A <= H R [0]
-LINE @ $1 [PX'][PY'][PX][PY]
+B @ 1 | 2<3 4 | 5<6 7 | 8 < 9 [0]
 `));
   /*
    
@@ -812,6 +785,7 @@ TODO:
 Statement
 = _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
+  console.log(formcond);
   processStatement(seq,form,formcond,argvs);
 }
 
