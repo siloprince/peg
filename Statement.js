@@ -2,9 +2,11 @@
 let config = {
   state: {
     self: null,
+    selfIdx: null,
     now: 0,
     here: 0,
     serial: 0,
+    decl_serial: {}
   },
   parser: {
     mode: false,
@@ -48,7 +50,7 @@ let config = {
         return cidx;
       }
       function self() {
-        var ret = config.iteraita[config.state.self];
+        var ret = config.iteraita[config.state.self][config.state.selfIdx];
         return ret;
       }
       function val(obj, _cidx, ridx) {
@@ -274,9 +276,15 @@ let config = {
         processStatementSub(seq, _formulaArray, _condArray, _argvsArray, _argvsCondArray, _formulaStrArray, _condStrArray, _argvsStrArray, _argvsCondStrArray);
       }
       function processStatementSub(seq, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
-        let decl = seq[0].name;
+        let declLabel = seq[0].name;
+        if (!(declLabel in config.state.decl_serial)) {
+          config.state.decl_serial[declLabel] = -1;
+          config.iteraita[declLabel] = [];
+        }
+        config.state.decl_serial[declLabel]++;
+        let decl = declLabel + '_' + config.state.decl_serial[declLabel];
         config.decls.push(decl);
-        config.iteraita[decl] = {
+        let iter = {
           inits: [],
           values: [],
           formula: formulaStrArray[0],
@@ -289,6 +297,7 @@ let config = {
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
+        config.iteraita[declLabel].push(iter);
         calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
@@ -306,22 +315,23 @@ let config = {
             continue;
           }
           let _decl = '_' + config.state.serial++;
+          config.state.decl_serial[_decl]=0;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
             if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
-              config.iteraita[decl].argvsDep.push([{ name: _decl, type: 'seqend_variargv' }]);
+              iter.argvsDep.push([{ name: _decl, type: 'seqend_variargv' }]);
               break;
             }
           }
           for (let ak = 0; ak < argvsCondDepArray[ai].length; ak++) {
             if (argvsCondDepArray[ai][ak].type === 'seqend_variargv') {
-              config.iteraita[decl].argvsCondDep.push([{ name: _decl, type: 'seqend_variargv' }]);
+              iter.argvsCondDep.push([{ name: _decl, type: 'seqend_variargv' }]);
               break;
             }
           }
           config.decls.push(_decl);
-          config.iteraita[decl].sideSequences.push(_decl);
+          iter.sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
-          config.iteraita[_decl] = {
+          config.iteraita[_decl] = [{
             inits: [],
             values: [],
             formula: [argvsStrArray[ai]][0],
@@ -331,7 +341,7 @@ let config = {
             conditionDep: [argvsCondDepArray[ai]][0],
             argvsDep: null,
             sideSequences: [],
-          };
+          }];
           calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
         }
         // recalculate
@@ -399,13 +409,26 @@ let config = {
           }
         }
       }
+      function parseDecl(decl) {
+        if (/^([^_]+)_([0-9]+)$/.test(decl)) {
+          let name = RegExp.$1;
+          let idx = RegExp.$2;
+          return [name, parseInt(idx, 10)];
+        } else if (/^_[0-9]+$/.test(decl)) {
+          return [decl, 0];
+        }
+        return null;
+      }
       function processStatements() {
-        setStart(config.decls, config.depend, config.starts);
         run(10);
         console.log(config.iteraita);
         return;
       }
       function run(_max, _limit) {
+
+        // just in case of adding new sequence
+        setStart(config.decls, config.depend, config.starts);
+
         if (_limit) {
           config.limit.value = _limit;
         }
@@ -414,6 +437,7 @@ let config = {
         }
         config.limit.count = 0;
         let max = 0;
+
         for (let sk in config.starts) {
           max = Math.max(max, config.starts[sk]);
         }
@@ -423,8 +447,12 @@ let config = {
           config.state.now = i % max;
           for (let di = 0; di < config.decls.length; di++) {
             let decl = config.decls[di];
-            config.state.self = decl;
-            let iter = config.iteraita[decl];
+            let declLabelIdx = parseDecl(decl);
+            let declLabel = declLabelIdx[0];
+            let declIdx = declLabelIdx[1];
+            config.state.self = declLabel;
+            config.state.selfIdx = declIdx;
+            let iter = config.iteraita[declLabel][declIdx];
             let argvs = iter.argvs;
             let start = config.starts[decl] * config.max;
             if (start <= i && i <= start + config.max - 1) {
@@ -433,7 +461,7 @@ let config = {
                 let minSides = 0;
                 let constargv = true;
                 for (let ai = 0; ai < argvs.length; ai++) {
-                  if (!(ai in config.iteraita[decl].sideSequences)) {
+                  if (!(ai in iter.sideSequences)) {
                     let str = argvs[ai];
                     config.parser.mode = true;
                     let evaled = config.parser.formula.parse(config.preprocess(str));
@@ -441,10 +469,10 @@ let config = {
                     sideArray.push([evaled]);
                   } else {
                     constargv = false;
-                    let _decl = config.iteraita[decl].sideSequences[ai];
+                    let _decl = iter.sideSequences[ai];
                     let tmp = [];
-                    for (let ii = 0; ii < config.iteraita[_decl].values.length; ii++) {
-                      tmp = tmp.concat(config.iteraita[_decl].values[ii]);
+                    for (let ii = 0; ii < config.iteraita[_decl][0].values.length; ii++) {
+                      tmp = tmp.concat(config.iteraita[_decl][0].values[ii]);
                     }
                     if (minSides) {
                       minSides = Math.min(minSides, tmp.length);
@@ -480,7 +508,8 @@ let config = {
                       for (let vi = 0; vi < varis.length; vi++) {
                         if ('name' in varis[vi]) {
                           let vari = varis[vi].name;
-                          varimax = Math.max(varimax, config.iteraita[vari].values.length);
+                          // TODO: basically use 0 if not specified by "?"
+                          varimax = Math.max(varimax, config.iteraita[vari][0].values.length);
                         }
                       }
                     }
@@ -519,7 +548,20 @@ let config = {
         config.parser.mode = false;
         iter.values[cidx].push(val);
       }
-      function setStart(decls, depend, starts) {
+      function setStart(decls, _depend, starts) {
+        let depend = {};
+        for (let dk in _depend) {
+          depend[dk] = {};
+          for (let depdecl in _depend[dk]) {
+            for (let di = 0; di < config.state.decl_serial[depdecl] + 1; di++) {
+              if (depdecl.indexOf('_') === 0) {
+                depend[dk][depdecl] = _depend[dk][depdecl];
+              } else {
+                depend[dk][depdecl + '_' + di] = _depend[dk][depdecl];
+              }
+            }
+          }
+        }
         // clear
         for (let di = 0; di < decls.length; di++) {
           let decl = decls[di];
@@ -624,7 +666,9 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
+
 A	 @ '+1 [0]
+A  @ 2
 PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
 PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
 P @ PA/PB	
@@ -633,7 +677,7 @@ G @ 2* P#/H
 CB @ -' G G / (2A(2A-1)) [1]
 C @ ' + CB [1]
 SB @ -2' G G / (2A(2A+1)) [G#]
-S @ S' + SB [G#]
+S @ ' + SB [G#]
 CN @ 2C# ' - '' [C#][0]
 SN @ 2C# ' - '' [-S#] [0]
 L	@ 20
@@ -643,6 +687,27 @@ PY @ ' + L SN | A <= H R [0]
 LINE @ $1 [PX'][PY'][PX][PY]
 `));
   /*
+TODO: S' と 'で挙動が違う
+
+A	 @ '+1 [0]
+A  @ 2
+PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
+P @ PA/PB	
+H @ 11	
+G @ 2* P#/H
+CB @ -' G G / (2A(2A-1)) [1]
+C @ ' + CB [1]
+SB @ -2' G G / (2A(2A+1)) [G#]
+S @ ' + SB [G#]
+CN @ 2C# ' - '' [C#][0]
+SN @ 2C# ' - '' [-S#] [0]
+L	@ 20
+R @ 1
+PX @ '-L CN | A <= H R [0]
+PY @ ' + L SN | A <= H R [0]
+LINE @ $1 [PX'][PY'][PX][PY]
+
 
 A	 @ '+1 [0]
 PA @ 6* ' +  (2*A-1)*(2*A-1)* '' [1] [3]
@@ -947,7 +1012,8 @@ SysIndex
 Sequence 
 = seq:[A-Z]+ { 
   if (config.parser.mode) {
-    return config.iteraita[seq.join('')];
+    // TODO: use 0 if not specified by '?'
+    return config.iteraita[seq.join('')][0];
   } else { 
     return [{
       type: 'sequence',
