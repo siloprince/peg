@@ -201,6 +201,7 @@ let config = {
           if (arg === null) {
             return lastini(seq);
           }
+          console.log(here());
           return ini(seq, here(), arg);
         }
       }
@@ -468,6 +469,7 @@ let config = {
               let start = config.starts[decl] * config.max;
               if (start <= i && i <= start + config.max - 1) {
                 if (start !== i) {
+                  config.state.here = dj;
                   appendRow(iter);
                 } else {
                   let sideArray = [];
@@ -508,8 +510,9 @@ let config = {
                     }
                     prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
 
-                    config.state.here = dj + mi;
-                    appendRow(iters[dj + mi]);
+                    config.state.here = dj;
+                    console.log(decl+'>>'+config.state.here);
+                    appendRow(iters[dj]);
                   }
                   config.state.here = 0;
                 }
@@ -552,8 +555,6 @@ let config = {
         config.parser.mode = true;
         let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
         config.parser.mode = false;
-        console.log(iter.inits);
-        console.log(iter.formula+' : '+val);
         iter.values.push(val);
       }
       function setStart(decls, _depend, starts) {
