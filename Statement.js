@@ -420,7 +420,6 @@ let config = {
         return;
       }
       function run(_max, _limit) {
-
         // just in case of adding new sequence
         setStart(config.decls, config.depend, config.starts);
 
@@ -664,10 +663,11 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-B @ 1 | 2<3 4 | 5<6 7 | 8 < 9 [0]
+C @ 1
+B @ 1 | 2<3 4 | 5<6 7 | (8 < 9)
+D @ 1
 `));
   /*
-   
    
   TODO: S' と 'で挙動が違う
    
@@ -783,7 +783,7 @@ TODO:
 
 */
 Statement
-= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula ( _ '|' Condition? ) )* )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {
   console.log(formcond);
   processStatement(seq,form,formcond,argvs);
