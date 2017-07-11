@@ -21,6 +21,7 @@ let config = {
   decls: [],
   dependOrder: {},
   depend: {},
+  magic: '"',
   preprocess: function (str) {
     return str.trim();
   }
@@ -309,7 +310,7 @@ let config = {
       }
       function processStatementSub(declLabel, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
         config.state.decl_serial[declLabel]++;
-        let decl = declLabel + '_' + config.state.decl_serial[declLabel];
+        let decl = declLabel + config.magic + config.state.decl_serial[declLabel];
         config.decls.push(decl);
         let iter = {
           label: declLabel,
@@ -343,7 +344,7 @@ let config = {
           if (constargv) {
             continue;
           }
-          let _decl = '_' + config.state.serial++;
+          let _decl = config.magic + config.state.serial++;
           config.state.decl_serial[_decl] = 0;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
             if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
@@ -443,11 +444,13 @@ let config = {
         }
       }
       function parseDecl(decl) {
-        if (/^([^_]+)_([0-9]+)$/.test(decl)) {
+        let regfull = RegExp('^([^'+config.magic+']+)'+config.magic+'([0-9]+)$');
+        let regless = RegExp('^'+config.magic+'([0-9]+)$');
+        if (regfull.test(decl)) {
           let name = RegExp.$1;
           let idx = RegExp.$2;
           return [name, parseInt(idx, 10)];
-        } else if (/^_[0-9]+$/.test(decl)) {
+        } else if (regless.test(decl)) {
           return [decl, 0];
         }
         return null;
@@ -609,10 +612,10 @@ let config = {
           depend[dk] = {};
           for (let depdecl in _depend[dk]) {
             for (let di = 0; di < config.state.decl_serial[depdecl] + 1; di++) {
-              if (depdecl.indexOf('_') === 0) {
+              if (depdecl.indexOf(config.magic) === 0) {
                 depend[dk][depdecl] = _depend[dk][depdecl];
               } else {
-                depend[dk][depdecl + '_' + di] = _depend[dk][depdecl];
+                depend[dk][depdecl + config.magic + di] = _depend[dk][depdecl];
               }
             }
           }
