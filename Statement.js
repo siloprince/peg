@@ -47,6 +47,8 @@ let config = {
       function getCidx(iters, _cidx) {
         var cidx = _cidx;
         if (typeof (_cidx) === 'undefined') {
+          cidx = here();
+        } else {
           cidx = (_cidx + iters.length * 10) % iters.length;
         }
         return cidx;
@@ -189,7 +191,7 @@ let config = {
         if (result.backdash !== 0) {
           hasBackdash = 1;
         }
-        let cidx = -(result.backdash);
+        let cidx = here() -(result.backdash);
         let ridx = now() - (result.dash + hasBackdash);
         return val(seq, cidx, ridx);
       }
@@ -395,7 +397,8 @@ let config = {
               continue;
             }
             let name = depend[di].name;
-            if (name !== decl) {
+            let declLabel = parseDecl(decl)[0];
+            if (name !== declLabel) {
               if (!(decl in config.depend)) {
                 config.depend[decl] = {};
               }
@@ -699,24 +702,8 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  A	 @ '+1 [0]
-  A  @ 2
-  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-  P @ PA/PB	
-  H @ 11	
-  G @ 2P#/H
-  CB @ -' G G / (2A(2A-1)) [1]
-  C @ ' + CB [1]
-  SB @ -2 ' G G / (2A(2A+1)) [G#]
-  S @ ' + SB [G#]
-  CN @ 2C# ' - '' [C#][0]
-  SN @ 2C# ' - '' [-S#] [0]
-  L	@ 20
-  R @ 1
-  PX @ '-L CN | A <= H R [0]
-  PY @ ' + L SN | A <= H R [0]
-  LINE @ $1 [PX'][PY'][PX][PY]
+  A	@ A'+1 [0]
+  A @ 2
 `));
   /*
   A	 @ '+1 [0]
