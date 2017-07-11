@@ -233,7 +233,7 @@ let config = {
         let _condArray = [];
         if (formcond) {
           let cond1 = formcond[2];
-          if (cond1 && cond1.length === 1) {
+          if (cond1 && cond1.length > 0) {
             _condStrArray.push(cond1.pop().text);
             _condArray.push(cond1);
           }
@@ -570,19 +570,19 @@ let config = {
         new_iter.values = [];
       }
       function appendRow(iter) {
+        config.parser.mode = true;
+        let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
+        config.parser.mode = false;
+        iter.values.push(val);
         if (iter.condition && iter.condition.length > 0) {
           config.parser.mode = true;
           let cond = config.parser.formula.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
           config.parser.mode = false;
           if (!cond) {
+            iter.values.pop();
             iter.values.push(null);
-            return;
           }
         }
-        config.parser.mode = true;
-        let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
-        config.parser.mode = false;
-        iter.values.push(val);
       }
       function setStart(decls, _depend, starts) {
         let depend = {};
@@ -702,36 +702,7 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  A	 @ '+1 [0]
-  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-  P @ PA/PB	
-  H @ 11	
-  G @ 2P#/H
-  CB @ -' G G / (2A(2A-1)) [1]
-  C @ ' + CB [1]
-  SB @ -2 ' G G / (2A(2A+1)) [G#]
-  S @ ' + SB [G#]
-  CN @ 2C# ' - '' [C#][0]
-  SN @ 2C# ' - '' [-S#] [0]
-  L	@ 20
-  R @ 1
-  PX @ '-L CN | A <= H R [0]
-  PY @ ' + L SN | A <= H R [0]
-  LINE @   $3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
-   |
-  (
-  (
-   ($0-$2)*($0-$2)>=0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-  )
-  or
-  ( 
-  (($1-$3)*($1-$3)<0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-  ) [PX'][PY'][PX][PY]
+  A	 @ '+1 | A<8 [0]
 `));
   /*
   A	 @ '+1 [0]
