@@ -5,12 +5,10 @@ let config = {
     now: 0,
     here: 0,
     serial: 0,
-    decl_serial: {}
+    decl_serial: {},
+    mode: false, // TODO: add more modes : preprocess interpretor
   },
-  parser: {
-    mode: false,
-    formula: null
-  },
+  parser: null,
   limit: {
     count: 0,
     values: 10000,
@@ -248,7 +246,7 @@ let config = {
         return ret;
       }
       function processStatement(seq, form, formcond, argvs) {
-        if (config.parser.mode) {
+        if (config.state.mode) {
           return;
         }
         let _formulaStrArray = [form.pop().text];
@@ -527,9 +525,9 @@ let config = {
                   for (let ai = 0; ai < argvs.length; ai++) {
                     if (!(ai in iter.sideSequences)) {
                       let str = argvs[ai];
-                      config.parser.mode = true;
-                      let evaled = config.parser.formula.parse(config.preprocess(str));
-                      config.parser.mode = false;
+                      config.state.mode = true;
+                      let evaled = config.parser.parse(config.preprocess(str));
+                      config.state.mode = false;
                       sideArray.push([evaled]);
                     } else {
                       constargv = false;
@@ -591,14 +589,14 @@ let config = {
         new_iter.values = [];
       }
       function appendRow(iter) {
-        config.parser.mode = true;
-        let val = config.parser.formula.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
-        config.parser.mode = false;
+        config.state.mode = true;
+        let val = config.parser.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
+        config.state.mode = false;
         iter.values.push(val);
         if (iter.condition && iter.condition.length > 0) {
-          config.parser.mode = true;
-          let cond = config.parser.formula.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
-          config.parser.mode = false;
+          config.state.mode = true;
+          let cond = config.parser.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
+          config.state.mode = false;
           if (!cond) {
             iter.values.pop();
             iter.values.push(null);
@@ -714,14 +712,14 @@ let config = {
   }
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
-  config.parser.formula = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
+  config.parser = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
 
   /*
     console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
     B @ A# 
     C @ B#` + '\n'));
   */
-  config.parser.mode = false;
+  config.state.mode = false;
   statementParser.parse(config.preprocess(`
 
   A	 @ '+1 [0]
@@ -854,7 +852,7 @@ TODO:
 Statements
 = (Statement)+ 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return;
   }
   processStatements();
@@ -877,7 +875,7 @@ Statement
 Condition
 = head:FuncCondTerm tail:( _ ('and' / 'or') _ FuncCondTerm)*
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processAndOr(head, tail);
   } else {
     let ret = processTail(head, tail);
@@ -889,7 +887,7 @@ Condition
 Formula
 = head:FuncTerm tail:( _ ('+' / '-') _ FuncTerm)*
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processAddSub(head, tail);
   } else {
     let ret = processTail(head, tail);
@@ -899,7 +897,7 @@ Formula
 }
 / tail:( _ ('+' / '-') _ FuncTerm)+
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processAddSub(0, tail);
   } else {
     let ret = processTail(null, tail);
@@ -922,7 +920,7 @@ FuncCondTerm
 FuncCondTermSub
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) _ Term)+
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     let ret = processFuncCond(head, tail);
     return ret;
   } else {
@@ -931,7 +929,7 @@ FuncCondTermSub
 }
 / _ op:[a-z]+ args:Term 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processFuncCondEx(op.join(''), null, args);
   } else {
     return args; 
@@ -939,7 +937,7 @@ FuncCondTermSub
 }
 / _ op:[a-z]+ tail:( _ '[' _ Term _ ']')+ 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processFuncCondEx(op.join(''),2, tail);
   } else { 
     return processTail(null, tail);
@@ -949,7 +947,7 @@ FuncCondTermSub
 FuncTerm
 = head:Term tail:( _ [a-z]+ _ Term)*
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processFunc(head, tail);
   } else {
     return processTail(head, tail);
@@ -957,7 +955,7 @@ FuncTerm
 }
 / _ op:[a-z]+ args:Term 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processFuncEx(op.join(''), null, args);
   } else { 
     return args; 
@@ -965,7 +963,7 @@ FuncTerm
 }
 / _ op:[a-z]+ tail:( _ '{' _ Term _ '}')+
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processFuncEx(op.join(''), 2, args);
   } else {
     return processTail(null, tail);
@@ -975,7 +973,7 @@ FuncTerm
 Term
 = _ head:UnsignedNumber tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) / [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processMulDiv(head, tail);
   } else {
     return processTail(head, tail);
@@ -983,7 +981,7 @@ Term
 }
 / _ head:Factor tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) /  [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processMulDiv(head, tail);
   } else {
     return processTail(head, tail);
@@ -997,7 +995,7 @@ Factor
   / SysOperatedDash
   / seq:Sequence
   {
-    if (config.parser.mode) {
+    if (config.state.mode) {
       return val(seq,here(),now());
     } else {
       return seq;
@@ -1007,7 +1005,7 @@ Factor
 SysOperatedDash
 = seq:Sequence tail:( [${dash}${backdash}] SysIndex*)+ 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processDash (seq,tail);
   } else {
     return [{
@@ -1018,7 +1016,7 @@ SysOperatedDash
 }
 / tail:([${dash}${backdash}]  SysIndex*)+ 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processDash (self(),tail);
   } else {
     return [];
@@ -1028,7 +1026,7 @@ SysOperatedDash
 SysOperatedDoller
 = seq:Sequence op:'$' idx:SysIndex?
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processHashDoller (seq, idx, op);
   } else {
     return [{
@@ -1039,7 +1037,7 @@ SysOperatedDoller
 }
 / _ op:'$' idx:SysIndex*
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processHashDoller (self(), idx, op);
   } else {
     return [];
@@ -1049,7 +1047,7 @@ SysOperatedDoller
 SysOperatedHash
 = seq:Sequence op:'#' idx:SysIndex? 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processHashDoller (seq, idx, op);
   } else {
     return [{
@@ -1060,7 +1058,7 @@ SysOperatedHash
 }
 / _ op:'#' idx:SysIndex* 
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return processHashDoller (self(), idx, op);
   } else {
     return [];
@@ -1079,7 +1077,7 @@ SysIndex
 
 Sequence 
 = seq:[A-Z]+ { 
-  if (config.parser.mode) {
+  if (config.state.mode) {
     // TODO: use 0 if not specified by '?'
     return config.iteraitas[seq.join('')][0];
   } else {
@@ -1093,7 +1091,7 @@ Sequence
 UnsignedNumber
 = $( _UnsignedFloat / _UnsignedInt)
 {
-  if (config.parser.mode) {
+  if (config.state.mode) {
     return parseFloat(text());
   } else {
     return [];
