@@ -74,11 +74,36 @@ let config = {
           return null;
         } else {
           let here = 0;
-          let idx = iter.values.lastIndexOf(null);
+          let idx = iter.values.indexOf(null);
           if (idx === -1) {
             return iter.values[iter.values.length - 1];
           } else {
             return iter.values[idx - 1];
+          }
+        }
+      }
+      function vallen(iter) {
+        if (iter.values.length === 0) {
+          return 0;
+        } else {
+          let here = 0;
+          let idx = iter.values.indexOf(null);
+          if (idx === -1) {
+            return iter.values.length;
+          } else {
+            return idx;
+          }
+        }
+      }
+      function inilen(iter) {
+        if (iter.inits.length === 0) {
+          return 0;
+        } else {
+          let idx = iter.inits.indexOf(null);
+          if (idx === -1) {
+            return iter.inits.length;
+          } else {
+            return idx;
           }
         }
       }
@@ -516,7 +541,7 @@ let config = {
                       // _decl is always 0
                       let _iter = config.iteraitas[_decl][0];
                       let tmp = [];
-                      for (let ii = 0; ii < _iter.values.length; ii++) {
+                      for (let ii = 0; ii < vallen(_iter); ii++) {
                         tmp.push(_iter.values[ii]);
                       }
                       if (minSides) {
@@ -707,7 +732,7 @@ let config = {
   PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
   PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
   P @ PA/PB	
-  H @ 11	
+  H @ 5
   G @ 2P#/H
   CB @ -' G G / (2A(2A-1)) [1]
   C @ ' + CB [1]
