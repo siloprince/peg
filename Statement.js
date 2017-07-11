@@ -16,11 +16,13 @@ let config = {
     count: 0,
     values: 10000,
   },
+  orders: [],
   starts: [],
   constval: 4,
-  max: 4,
+  max: 1,
   iteraitas: {},
   decls: [],
+  dependOrder: {},
   depend: {},
   preprocess: function (str) {
     return str.trim();
@@ -103,7 +105,8 @@ let config = {
       }
       function processAddSub(head, tail) {
         return tail.reduce(function (result, element) {
-          if (element[1] === '+') { return result + element[3]; }
+          if (element[1] === '+') {
+            return result + element[3]; }
           if (element[1] === '-') { return result - element[3]; }
         }, head);
       }
@@ -350,7 +353,6 @@ let config = {
         }
         // recalculate
         calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
-
         return;
         function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
           let depend = [];
@@ -397,13 +399,19 @@ let config = {
               if (!(decl in config.depend)) {
                 config.depend[decl] = {};
               }
+              if (!(decl in config.dependOrder)) {
+                config.dependOrder[decl] = {};
+              }
               if (!(name in config.depend[decl])) {
                 config.depend[decl][name] = 0;
+                config.dependOrder[decl][name] = 0;
               }
               if (depend[di].type.indexOf('seqend') === 0) {
                 config.depend[decl][name] = Math.max(config.depend[decl][name], 1);
+                config.dependOrder[decl][name] = Math.max(config.dependOrder[decl][name], 2);
               } else {
                 config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
+                config.dependOrder[decl][name] = Math.max(1, config.dependOrder[decl][name]);
               }
             }
           }
@@ -420,7 +428,6 @@ let config = {
         return null;
       }
       function processStatements() {
-        console.log(config.depend);
         run(10);
         console.log(config.iteraitas);
         return;
@@ -428,6 +435,28 @@ let config = {
       function run(_max, _limit) {
         // just in case of adding new sequence
         setStart(config.decls, config.depend, config.starts);
+        setStart(config.decls, config.dependOrder, config.orders);
+        let order = {};
+        let groupMax = 0;
+        for (let ok in config.orders) {
+            let declLabel = parseDecl(ok)[0];
+            if (!(declLabel in order)) {
+              order[declLabel] = 0;
+            }
+            order[declLabel] = Math.max(order[declLabel], config.orders[ok]);
+            groupMax = Math.max(groupMax,order[declLabel]);
+        }
+        let group = [];
+        for (let gi=0;gi<groupMax+1;gi++) {
+          group.push([]);
+        }
+        for (let ok in order){
+          group[order[ok]].push(ok);
+        }
+        let groupOrder = [];
+        for (let gi=0;gi<group.length;gi++) {
+          groupOrder = groupOrder.concat(group[gi]);
+        }
 
         if (_limit) {
           config.limit.value = _limit;
@@ -445,7 +474,8 @@ let config = {
         max = (max + 1) * config.max;
         for (let i = 0; i < max + config.max; i++) {
           config.state.now = i % max;
-          for (let dk in config.iteraitas) {
+          for (let gi=0;gi<groupOrder.length;gi++) {
+            let dk = groupOrder[gi];
             let iters = config.iteraitas[dk];
             let tmp_iters = [];
             for (let dj = 0; dj < iters.length; dj++) {
@@ -669,9 +699,11 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  B @ A + 1
-  Q @ 1 | 2 | A
-  A @ 6
+  D @ 1 [A]
+  A @ B
+  C @ A
+  E @ A + C
+  B @ 1 + 1
 `));
   /*
   A	 @ '+1 [0]
