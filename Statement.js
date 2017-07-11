@@ -699,11 +699,24 @@ let config = {
   */
   config.parser.mode = false;
   statementParser.parse(config.preprocess(`
-  D @ 1 [A]
-  A @ B
-  C @ A
-  E @ A + C
-  B @ 1 + 1
+  A	 @ '+1 [0]
+  A  @ 2
+  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
+  P @ PA/PB	
+  H @ 11	
+  G @ 2P#/H
+  CB @ -' G G / (2A(2A-1)) [1]
+  C @ ' + CB [1]
+  SB @ -2 ' G G / (2A(2A+1)) [G#]
+  S @ ' + SB [G#]
+  CN @ 2C# ' - '' [C#][0]
+  SN @ 2C# ' - '' [-S#] [0]
+  L	@ 20
+  R @ 1
+  PX @ '-L CN | A <= H R [0]
+  PY @ ' + L SN | A <= H R [0]
+  LINE @ $1 [PX'][PY'][PX][PY]
 `));
   /*
   A	 @ '+1 [0]
@@ -819,7 +832,7 @@ TODO:
 */
 Statement
 = _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
-{
+{  
   processStatement(seq,form,formcond,argvs);
 }
 
@@ -959,14 +972,10 @@ SysOperatedDash
   if (config.parser.mode) {
     return processDash (seq,tail);
   } else {
-    if (seq[0].name !== config.state.self) {
-      return [{
-        type: 'seqstart',
-        name: seq[0].name,
-      }];
-    } else {
-      return [];
-    }
+    return [{
+      type: 'seqstart',
+      name: seq[0].name,
+    }];
   }
 }
 / tail:([${dash}${backdash}]  SysIndex*)+ 
@@ -984,14 +993,10 @@ SysOperatedDoller
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
   } else {
-    if (seq[0].name !== config.state.self) {
-      return [{
-        type: 'seqend',
-        name: seq[0].name,
-      }]; 
-    } else {
-      return [{}];
-    }
+    return [{
+      type: 'seqend',
+      name: seq[0].name,
+    }];
   }
 }
 / _ op:'$' idx:SysIndex*
@@ -1009,14 +1014,10 @@ SysOperatedHash
   if (config.parser.mode) {
     return processHashDoller (seq, idx, op);
   } else {
-    if (seq[0].name !== config.state.self) {
-      return [{
-        type: 'seqend',
-        name: seq[0].name,
-      }];
-    } else {
-      return [{}];
-    }
+    return [{
+      type: 'seqend',
+      name: seq[0].name,
+    }];
   }
 }
 / _ op:'#' idx:SysIndex* 
@@ -1044,7 +1045,6 @@ Sequence
     // TODO: use 0 if not specified by '?'
     return config.iteraitas[seq.join('')][0];
   } else {
-    config.state.self = seq.join('');
     return [{
       type: 'sequence',
       name: seq.join(''),
