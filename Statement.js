@@ -2,7 +2,6 @@
 let config = {
   state: {
     self: null,
-    selfIdx: null,
     now: 0,
     here: 0,
     serial: 0,
@@ -54,7 +53,7 @@ let config = {
         return cidx;
       }
       function self() {
-        var ret = config.iteraitas[config.state.self][config.state.selfIdx];
+        var ret = config.iteraitas[config.state.self][here()];
         return ret;
       }
       function val(iter, _cidx, ridx) {
@@ -515,9 +514,6 @@ let config = {
               let declLabelIdx = parseDecl(decl);
               let declIdx = declLabelIdx[1];
               config.state.self = iter.label;
-              // here or selfIndx?
-              config.state.selfIdx = dj;
-
               let argvs = iter.argvs;
               let start = config.starts[decl] * config.max;
               if (start <= i && i <= start + config.max - 1) {
