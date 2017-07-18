@@ -1,30 +1,32 @@
 'use strict';
 var global = Function("return this")();
-global.config = {
-  state: {
-    self: null,
-    now: 0,
-    here: 0,
-    serial: 0,
-    decl_serial: {},
-    mode: false, // TODO: add more modes : preprocess interpretor
-  },
-  parser: null,
-  limit: {
-    count: 0,
-    values: 10000,
-  },
-  orders: [],
-  starts: [],
-  constval: 4,
-  max: 1,
-  iteraitas: {},
-  decls: [],
-  dependOrder: {},
-  depend: {},
-  magic: '_',
-  preprocess: function (str) {
-    return str.trim();
+global.rentaku = {
+  '_': {
+    state: {
+      self: null,
+      now: 0,
+      here: 0,
+      serial: 0,
+      decl_serial: {},
+      mode: false, // TODO: add more modes : preprocess interpretor
+    },
+    parser: null,
+    limit: {
+      count: 0,
+      values: 10000,
+    },
+    orders: [],
+    starts: [],
+    constval: 4,
+    max: 1,
+    iteraitas: {},
+    decls: [],
+    dependOrder: {},
+    depend: {},
+    magic: '_',
+    preprocess: function (str) {
+      return str.trim();
+    }
   }
 };
 
@@ -34,13 +36,13 @@ global.config = {
       return test;
 
       function now() {
-        return config.state.now % config.max;
+        return rentaku._.state.now % rentaku._.max;
       }
       function here() {
-        return config.state.here;
+        return rentaku._.state.here;
       }
       function getRidx(_ridx) {
-        return (_ridx + config.max * 10) % config.max;
+        return (_ridx + rentaku._.max * 10) % rentaku._.max;
 
       }
       function getCidx(iters, _cidx) {
@@ -53,11 +55,11 @@ global.config = {
         return cidx;
       }
       function self() {
-        var ret = config.iteraitas[config.state.self][here()];
+        var ret = rentaku._.iteraitas[rentaku._.state.self][here()];
         return ret;
       }
       function val(iter, _cidx, ridx) {
-        var iters = config.iteraitas[iter.label];
+        var iters = rentaku._.iteraitas[iter.label];
         var cidx = getCidx(iters, _cidx);
         if (typeof (ridx) === 'undefined') {
           return iters[cidx].values[now()];
@@ -119,7 +121,7 @@ global.config = {
         }
       }
       function ini(iter, _cidx, ridx) {
-        var iters = config.iteraitas[iter.label];
+        var iters = rentaku._.iteraitas[iter.label];
         var cidx = getCidx(iters, _cidx);
         return iters[cidx].inits[ridx];
       }
@@ -249,7 +251,7 @@ global.config = {
         return ret;
       }
       function processStatement(seq, form, formcond, argvs) {
-        if (config.state.mode) {
+        if (rentaku._.state.mode) {
           return;
         }
         let _formulaStrArray = [form.pop().text];
@@ -300,9 +302,9 @@ global.config = {
           }
         }
         let declLabel = seq[0].name;
-        if (!(declLabel in config.state.decl_serial)) {
-          config.state.decl_serial[declLabel] = -1;
-          config.iteraitas[declLabel] = [];
+        if (!(declLabel in rentaku._.state.decl_serial)) {
+          rentaku._.state.decl_serial[declLabel] = -1;
+          rentaku._.iteraitas[declLabel] = [];
         }
         for (let di = 0; di < _formulaArray.length; di++) {
           processStatementSub(declLabel,
@@ -311,9 +313,9 @@ global.config = {
         }
       }
       function processStatementSub(declLabel, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
-        config.state.decl_serial[declLabel]++;
-        let decl = declLabel + config.magic + config.state.decl_serial[declLabel];
-        config.decls.push(decl);
+        rentaku._.state.decl_serial[declLabel]++;
+        let decl = declLabel + rentaku._.magic + rentaku._.state.decl_serial[declLabel];
+        rentaku._.decls.push(decl);
         let iter = {
           label: declLabel,
           name: decl,
@@ -329,7 +331,7 @@ global.config = {
           argvsConditionDep: argvsCondDepArray,
           sideSequences: [],
         };
-        config.iteraitas[declLabel].unshift(iter);
+        rentaku._.iteraitas[declLabel].unshift(iter);
         calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
         for (let ai = 0; ai < argvsStrArray.length; ai++) {
           let constargv = true;
@@ -346,8 +348,8 @@ global.config = {
           if (constargv) {
             continue;
           }
-          let _decl = config.magic + config.state.serial++;
-          config.state.decl_serial[_decl] = 0;
+          let _decl = rentaku._.magic + rentaku._.state.serial++;
+          rentaku._.state.decl_serial[_decl] = 0;
           for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
             if (argvsDepArray[ai][aj].type === 'seqend_variargv') {
               iter.argvsDep.push([{ name: _decl, type: 'seqend_variargv' }]);
@@ -360,10 +362,10 @@ global.config = {
               break;
             }
           }
-          config.decls.push(_decl);
+          rentaku._.decls.push(_decl);
           iter.sideSequences.push(_decl);
           // TODO: condDep support, argvsDepArray is always []
-          config.iteraitas[_decl] = [{
+          rentaku._.iteraitas[_decl] = [{
             label: _decl,
             name: _decl,
             inits: [],
@@ -424,30 +426,30 @@ global.config = {
             let name = depend[di].name;
             let declLabel = parseDecl(decl)[0];
             if (name !== declLabel) {
-              if (!(decl in config.depend)) {
-                config.depend[decl] = {};
+              if (!(decl in rentaku._.depend)) {
+                rentaku._.depend[decl] = {};
               }
-              if (!(decl in config.dependOrder)) {
-                config.dependOrder[decl] = {};
+              if (!(decl in rentaku._.dependOrder)) {
+                rentaku._.dependOrder[decl] = {};
               }
-              if (!(name in config.depend[decl])) {
-                config.depend[decl][name] = 0;
-                config.dependOrder[decl][name] = 0;
+              if (!(name in rentaku._.depend[decl])) {
+                rentaku._.depend[decl][name] = 0;
+                rentaku._.dependOrder[decl][name] = 0;
               }
               if (depend[di].type.indexOf('seqend') === 0) {
-                config.depend[decl][name] = Math.max(config.depend[decl][name], 1);
-                config.dependOrder[decl][name] = Math.max(config.dependOrder[decl][name], 2);
+                rentaku._.depend[decl][name] = Math.max(rentaku._.depend[decl][name], 1);
+                rentaku._.dependOrder[decl][name] = Math.max(rentaku._.dependOrder[decl][name], 2);
               } else {
-                config.depend[decl][name] = Math.max(0, config.depend[decl][name]);
-                config.dependOrder[decl][name] = Math.max(1, config.dependOrder[decl][name]);
+                rentaku._.depend[decl][name] = Math.max(0, rentaku._.depend[decl][name]);
+                rentaku._.dependOrder[decl][name] = Math.max(1, rentaku._.dependOrder[decl][name]);
               }
             }
           }
         }
       }
       function parseDecl(decl) {
-        let regfull = RegExp('^([^' + config.magic + ']+)' + config.magic + '([0-9]+)$');
-        let regless = RegExp('^' + config.magic + '([0-9]+)$');
+        let regfull = RegExp('^([^' + rentaku._.magic + ']+)' + rentaku._.magic + '([0-9]+)$');
+        let regless = RegExp('^' + rentaku._.magic + '([0-9]+)$');
         if (regfull.test(decl)) {
           let name = RegExp.$1;
           let idx = RegExp.$2;
@@ -459,25 +461,25 @@ global.config = {
       }
       function processStatements() {
         run(10);
-        for (let ik in config.iteraitas) {
-          for (let ii=0;ii<config.iteraitas[ik].length;ii++) {
-            console.log(ik+'['+ii+']:'+config.iteraitas[ik][ii].values);
+        for (let ik in rentaku._.iteraitas) {
+          for (let ii = 0; ii < rentaku._.iteraitas[ik].length; ii++) {
+            console.log(ik + '[' + ii + ']:' + rentaku._.iteraitas[ik][ii].values);
           }
         }
         return;
       }
       function run(_max, _limit) {
         // just in case of adding new sequence
-        setStart(config.decls, config.depend, config.starts);
-        setStart(config.decls, config.dependOrder, config.orders);
+        setStart(rentaku._.decls, rentaku._.depend, rentaku._.starts);
+        setStart(rentaku._.decls, rentaku._.dependOrder, rentaku._.orders);
         let order = {};
         let groupMax = 0;
-        for (let ok in config.orders) {
+        for (let ok in rentaku._.orders) {
           let declLabel = parseDecl(ok)[0];
           if (!(declLabel in order)) {
             order[declLabel] = 0;
           }
-          order[declLabel] = Math.max(order[declLabel], config.orders[ok]);
+          order[declLabel] = Math.max(order[declLabel], rentaku._.orders[ok]);
           groupMax = Math.max(groupMax, order[declLabel]);
         }
         let group = [];
@@ -493,24 +495,24 @@ global.config = {
         }
 
         if (_limit) {
-          config.limit.value = _limit;
+          rentaku._.limit.value = _limit;
         }
         if (_max) {
-          config.max = _max;
+          rentaku._.max = _max;
         }
-        config.limit.count = 0;
+        rentaku._.limit.count = 0;
         let max = 0;
 
-        for (let sk in config.starts) {
-          max = Math.max(max, config.starts[sk]);
+        for (let sk in rentaku._.starts) {
+          max = Math.max(max, rentaku._.starts[sk]);
         }
         // main loop
-        max = (max + 1) * config.max;
-        for (let i = 0; i < max + config.max; i++) {
-          config.state.now = i % max;
+        max = (max + 1) * rentaku._.max;
+        for (let i = 0; i < max + rentaku._.max; i++) {
+          rentaku._.state.now = i % max;
           for (let gi = 0; gi < groupOrder.length; gi++) {
             let dk = groupOrder[gi];
-            let iters = config.iteraitas[dk];
+            let iters = rentaku._.iteraitas[dk];
             let tmp_iters = [];
             for (let dj = 0; dj < iters.length; dj++) {
               tmp_iters.push(iters[dj]);
@@ -520,12 +522,12 @@ global.config = {
               let decl = iter.name;
               let declLabelIdx = parseDecl(decl);
               let declIdx = declLabelIdx[1];
-              config.state.self = iter.label;
+              rentaku._.state.self = iter.label;
               let argvs = iter.argvs;
-              let start = config.starts[decl] * config.max;
-              if (start <= i && i <= start + config.max - 1) {
+              let start = rentaku._.starts[decl] * rentaku._.max;
+              if (start <= i && i <= start + rentaku._.max - 1) {
                 if (start !== i) {
-                  config.state.here = dj;
+                  rentaku._.state.here = dj;
                   appendRow(iter);
                 } else {
                   let sideArray = [];
@@ -534,15 +536,15 @@ global.config = {
                   for (let ai = 0; ai < argvs.length; ai++) {
                     if (!(ai in iter.sideSequences)) {
                       let str = argvs[ai];
-                      config.state.mode = true;
-                      let evaled = config.parser.parse(config.preprocess(str));
-                      config.state.mode = false;
+                      rentaku._.state.mode = true;
+                      let evaled = rentaku._.parser.parse(rentaku._.preprocess(str));
+                      rentaku._.state.mode = false;
                       sideArray.push([evaled]);
                     } else {
                       constargv = false;
                       let _decl = iter.sideSequences[ai];
                       // _decl is always 0
-                      let _iter = config.iteraitas[_decl][0];
+                      let _iter = rentaku._.iteraitas[_decl][0];
                       let tmp = [];
                       for (let ii = 0; ii < vallen(_iter); ii++) {
                         tmp.push(_iter.values[ii]);
@@ -566,10 +568,10 @@ global.config = {
                     }
                     prepareColumn(decl, mi, minSides, dj, iter, tmpargv);
 
-                    config.state.here = dj;
+                    rentaku._.state.here = dj;
                     appendRow(iters[dj]);
                   }
-                  config.state.here = 0;
+                  rentaku._.state.here = 0;
                 }
               }
             }
@@ -586,7 +588,7 @@ global.config = {
           if (idx === 0) {
             new_iter = iter;
           } else {
-            let iters = config.iteraitas[iter.label];
+            let iters = rentaku._.iteraitas[iter.label];
             new_iter = JSON.parse(JSON.stringify(iter));
             iters.splice(loc, 0, new_iter);
           }
@@ -598,14 +600,14 @@ global.config = {
         new_iter.values = [];
       }
       function appendRow(iter) {
-        config.state.mode = true;
-        let val = config.parser.parse(config.preprocess(iter.formula), { startRule: 'Formula' });
-        config.state.mode = false;
+        rentaku._.state.mode = true;
+        let val = rentaku._.parser.parse(rentaku._.preprocess(iter.formula), { startRule: 'Formula' });
+        rentaku._.state.mode = false;
         iter.values.push(val);
         if (iter.condition && iter.condition.length > 0) {
-          config.state.mode = true;
-          let cond = config.parser.parse(config.preprocess(iter.condition), { startRule: 'Condition' });
-          config.state.mode = false;
+          rentaku._.state.mode = true;
+          let cond = rentaku._.parser.parse(rentaku._.preprocess(iter.condition), { startRule: 'Condition' });
+          rentaku._.state.mode = false;
           if (!cond) {
             iter.values.pop();
             iter.values.push(null);
@@ -617,11 +619,11 @@ global.config = {
         for (let dk in _depend) {
           depend[dk] = {};
           for (let depdecl in _depend[dk]) {
-            for (let di = 0; di < config.state.decl_serial[depdecl] + 1; di++) {
-              if (depdecl.indexOf(config.magic) === 0) {
+            for (let di = 0; di < rentaku._.state.decl_serial[depdecl] + 1; di++) {
+              if (depdecl.indexOf(rentaku._.magic) === 0) {
                 depend[dk][depdecl] = _depend[dk][depdecl];
               } else {
-                depend[dk][depdecl + config.magic + di] = _depend[dk][depdecl];
+                depend[dk][depdecl + rentaku._.magic + di] = _depend[dk][depdecl];
               }
             }
           }
@@ -701,8 +703,8 @@ global.config = {
          "_2": { "PX": 4 }, 
          "_3": { "PY": 4 } 
         };
-        setStart(decls, depend, config.starts);
-        console.log(config.starts);
+        setStart(decls, depend, rentaku._.starts);
+        console.log(rentaku._.starts);
       }
       */
     }
@@ -721,15 +723,15 @@ global.config = {
   }
   let statementStr = getStatementStr(funcStr);
   let statementParser = peg.generate(statementStr);
-  config.parser = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
+  rentaku._.parser = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
 
   /*
     console.log(statementParser.parse(`A @ A'+A'' | 1=1 [0][1]
     B @ A# 
     C @ B#` + '\n'));
   */
-  config.state.mode = false;
-  statementParser.parse(config.preprocess(`
+  rentaku._.state.mode = false;
+  statementParser.parse(rentaku._.preprocess(`
 
   A	 @ '+1 [0]
   PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
@@ -862,7 +864,7 @@ TODO:
 Statements
 = (Statement)+ 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return;
   }
   processStatements();
@@ -885,7 +887,7 @@ Statement
 Condition
 = head:FuncCondTerm tail:( _ ('and' / 'or') _ FuncCondTerm)*
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processAndOr(head, tail);
   } else {
     let ret = processTail(head, tail);
@@ -897,7 +899,7 @@ Condition
 Formula
 = head:FuncTerm tail:( _ ('+' / '-') _ FuncTerm)*
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processAddSub(head, tail);
   } else {
     let ret = processTail(head, tail);
@@ -907,7 +909,7 @@ Formula
 }
 / tail:( _ ('+' / '-') _ FuncTerm)+
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processAddSub(0, tail);
   } else {
     let ret = processTail(null, tail);
@@ -930,7 +932,7 @@ FuncCondTerm
 FuncCondTermSub
 = head:Term tail:(_ ('<='/ '<' / '=' / '>=' / '>' / '<>' / [a-z]+ ) _ Term)+
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     let ret = processFuncCond(head, tail);
     return ret;
   } else {
@@ -939,7 +941,7 @@ FuncCondTermSub
 }
 / _ op:[a-z]+ args:Term 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processFuncCondEx(op.join(''), null, args);
   } else {
     return args; 
@@ -947,7 +949,7 @@ FuncCondTermSub
 }
 / _ op:[a-z]+ tail:( _ '[' _ Term _ ']')+ 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processFuncCondEx(op.join(''),2, tail);
   } else { 
     return processTail(null, tail);
@@ -957,7 +959,7 @@ FuncCondTermSub
 FuncTerm
 = head:Term tail:( _ [a-z]+ _ Term)*
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processFunc(head, tail);
   } else {
     return processTail(head, tail);
@@ -965,7 +967,7 @@ FuncTerm
 }
 / _ op:[a-z]+ args:Term 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processFuncEx(op.join(''), null, args);
   } else { 
     return args; 
@@ -973,7 +975,7 @@ FuncTerm
 }
 / _ op:[a-z]+ tail:( _ '{' _ Term _ '}')+
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processFuncEx(op.join(''), 2, args);
   } else {
     return processTail(null, tail);
@@ -983,7 +985,7 @@ FuncTerm
 Term
 = _ head:UnsignedNumber tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) / [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processMulDiv(head, tail);
   } else {
     return processTail(head, tail);
@@ -991,7 +993,7 @@ Term
 }
 / _ head:Factor tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) /  [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processMulDiv(head, tail);
   } else {
     return processTail(head, tail);
@@ -1005,7 +1007,7 @@ Factor
   / SysOperatedDash
   / seq:Sequence
   {
-    if (config.state.mode) {
+    if (rentaku._.state.mode) {
       return val(seq,here(),now());
     } else {
       return seq;
@@ -1015,7 +1017,7 @@ Factor
 SysOperatedDash
 = seq:Sequence tail:( [${dash}${backdash}] SysIndex*)+ 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processDash (seq,tail);
   } else {
     return [{
@@ -1026,7 +1028,7 @@ SysOperatedDash
 }
 / tail:([${dash}${backdash}]  SysIndex*)+ 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processDash (self(),tail);
   } else {
     return [];
@@ -1036,7 +1038,7 @@ SysOperatedDash
 SysOperatedDoller
 = seq:Sequence op:'$' idx:SysIndex?
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processHashDoller (seq, idx, op);
   } else {
     return [{
@@ -1047,7 +1049,7 @@ SysOperatedDoller
 }
 / _ op:'$' idx:SysIndex*
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processHashDoller (self(), idx, op);
   } else {
     return [];
@@ -1057,7 +1059,7 @@ SysOperatedDoller
 SysOperatedHash
 = seq:Sequence op:'#' idx:SysIndex? 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processHashDoller (seq, idx, op);
   } else {
     return [{
@@ -1068,7 +1070,7 @@ SysOperatedHash
 }
 / _ op:'#' idx:SysIndex* 
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return processHashDoller (self(), idx, op);
   } else {
     return [];
@@ -1087,9 +1089,9 @@ SysIndex
 Sequence
 = seq:([^0-9a-z${wsp}${except}][^${wsp}${except}]*)  {
   let seqname = seq[0]+seq[1].join('');
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     // TODO: use 0 if not specified by '?'
-    return config.iteraitas[seqname][0];
+    return rentaku._.iteraitas[seqname][0];
   } else {
     return [{
       type: 'sequence',
@@ -1101,7 +1103,7 @@ Sequence
 UnsignedNumber
 = $( _UnsignedFloat / _UnsignedInt)
 {
-  if (config.state.mode) {
+  if (rentaku._.state.mode) {
     return parseFloat(text());
   } else {
     return [];
