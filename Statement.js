@@ -1,5 +1,6 @@
 'use strict';
-let config = {
+var global = Function("return this")();
+global.config = {
   state: {
     self: null,
     now: 0,
