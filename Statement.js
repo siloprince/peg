@@ -459,7 +459,11 @@ global.config = {
       }
       function processStatements() {
         run(10);
-        console.log(config.iteraitas);
+        for (let ik in config.iteraitas) {
+          for (let ii=0;ii<config.iteraitas[ik].length;ii++) {
+            console.log(ik+'['+ii+']:'+config.iteraitas[ik][ii].values);
+          }
+        }
         return;
       }
       function run(_max, _limit) {
