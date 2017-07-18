@@ -1,5 +1,5 @@
 'use strict';
-var global = Function("return this")();
+var global = Function('return this')();
 global.rentaku = {
   '_': {
     state: {
@@ -29,8 +29,10 @@ global.rentaku = {
     }
   }
 };
+try {
+(function (console, peg, srcStr) {
+  rentaku.sample = srcStr;
 
-(function (console, peg) {
   let param = {
     func: function () {
       return test;
@@ -731,40 +733,8 @@ global.rentaku = {
     C @ B#` + '\n'));
   */
   rentaku._.state.mode = false;
-  statementParser.parse(rentaku._.preprocess(`
-
-  A	 @ '+1 [0]
-  PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
-  PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
-  P @ PA/PB	
-  H @ 5
-  G @ 2P#/H
-  CB @ -' G G / (2A(2A-1)) [1]
-  C @ ' + CB [1]
-  SB @ -2 ' G G / (2A(2A+1)) [G#]
-  S @ ' + SB [G#]
-  CN @ 2C# ' - '' [C#][0]
-  SN @ 2C# ' - '' [-S#] [0]
-  L	@ 20
-  R @ 1
-  PX @ '-L CN | A <= H R [0]
-  PY @ ' + L SN | A <= H R [0]
-  LINE @  $3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
-  |
-  (
-  (
-   ($0-$2)*($0-$2)>=0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-  )
-  or
-  ( 
-  (($1-$3)*($1-$3)<0.0001)
-  and 
-  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
-  )
-  [PX'][PY'][PX][PY]
-`));
+  console.log(srcStr);
+  statementParser.parse(rentaku._.preprocess(srcStr));
   /*
   A  @ 2
   A	 @ '+1 [0]
@@ -1133,5 +1103,58 @@ _
       const peg = require('./peg-0.10.0');
       return peg;
     })()
-    : peg
+    : peg,
+    typeof (peg) === 'undefined'
+        ? (function () {
+                let fs = require('fs');
+                if (process.argv.length <= 2) {
+                    throw 'Usage: node rentaku.js file.ren\n';
+                } else {
+                    let file = process.argv[2];
+                    try {
+                        fs.statSync(file);
+                    } catch (e) {
+                        throw 'ERROR: no such a file: ' + file + '\n';
+                    }
+                    return fs.readFileSync(file, 'utf-8');
+                }
+            })()
+            : (function () {
+  return  `
+A @ '+1 [0]
+PA @ 6 ' +  (2A-1)(2A-1) '' [1] [3]
+PB @ 6 ' +  (2A-1)(2A-1) '' [0] [1]
+P @ PA/PB	
+H @ 5
+G @ 2P#/H
+CB @ -' G G / (2A(2A-1)) [1]
+C @ ' + CB [1]
+SB @ -2 ' G G / (2A(2A+1)) [G#]
+S @ ' + SB [G#]
+CN @ 2C# ' - '' [C#][0]
+SN @ 2C# ' - '' [-S#] [0]
+L @ 20
+R @ 1
+PX @ '-L CN | A <= H R [0]
+PY @ ' + L SN | A <= H R [0]
+LINE @  $3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(A-$2-1+(($2+1) mod 1))) mod 1) 
+| (
+ (
+   ($0-$2)*($0-$2)>=0.0001)
+  and 
+  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
+)
+or
+( 
+  (($1-$3)*($1-$3)<0.0001)
+  and 
+  ((A-$2-1+(($2+1) mod 1))*(A-$0+($0 mod 1))<=0)
+)
+[PX'][PY'][PX][PY]
+`;
+            })()
   );
+
+} catch (ex) {
+    console.error(ex);
+}
