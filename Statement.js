@@ -131,7 +131,8 @@ let config = {
       function processAddSub(head, tail) {
         return tail.reduce(function (result, element) {
           if (element[1] === '+') {
-            return result + element[3]; }
+            return result + element[3];
+          }
           if (element[1] === '-') { return result - element[3]; }
         }, head);
       }
@@ -214,7 +215,7 @@ let config = {
         if (result.backdash !== 0) {
           hasBackdash = 1;
         }
-        let cidx = here() -(result.backdash);
+        let cidx = here() - (result.backdash);
         let ridx = now() - (result.dash + hasBackdash);
         return val(seq, cidx, ridx);
       }
@@ -444,8 +445,8 @@ let config = {
         }
       }
       function parseDecl(decl) {
-        let regfull = RegExp('^([^'+config.magic+']+)'+config.magic+'([0-9]+)$');
-        let regless = RegExp('^'+config.magic+'([0-9]+)$');
+        let regfull = RegExp('^([^' + config.magic + ']+)' + config.magic + '([0-9]+)$');
+        let regless = RegExp('^' + config.magic + '([0-9]+)$');
         if (regfull.test(decl)) {
           let name = RegExp.$1;
           let idx = RegExp.$2;
@@ -467,22 +468,22 @@ let config = {
         let order = {};
         let groupMax = 0;
         for (let ok in config.orders) {
-            let declLabel = parseDecl(ok)[0];
-            if (!(declLabel in order)) {
-              order[declLabel] = 0;
-            }
-            order[declLabel] = Math.max(order[declLabel], config.orders[ok]);
-            groupMax = Math.max(groupMax,order[declLabel]);
+          let declLabel = parseDecl(ok)[0];
+          if (!(declLabel in order)) {
+            order[declLabel] = 0;
+          }
+          order[declLabel] = Math.max(order[declLabel], config.orders[ok]);
+          groupMax = Math.max(groupMax, order[declLabel]);
         }
         let group = [];
-        for (let gi=0;gi<groupMax+1;gi++) {
+        for (let gi = 0; gi < groupMax + 1; gi++) {
           group.push([]);
         }
-        for (let ok in order){
+        for (let ok in order) {
           group[order[ok]].push(ok);
         }
         let groupOrder = [];
-        for (let gi=0;gi<group.length;gi++) {
+        for (let gi = 0; gi < group.length; gi++) {
           groupOrder = groupOrder.concat(group[gi]);
         }
 
@@ -502,7 +503,7 @@ let config = {
         max = (max + 1) * config.max;
         for (let i = 0; i < max + config.max; i++) {
           config.state.now = i % max;
-          for (let gi=0;gi<groupOrder.length;gi++) {
+          for (let gi = 0; gi < groupOrder.length; gi++) {
             let dk = groupOrder[gi];
             let iters = config.iteraitas[dk];
             let tmp_iters = [];
@@ -1121,6 +1122,9 @@ _
   }
 })(console,
   typeof (peg) === 'undefined'
-    ? { generate: function () { return { parse: function () { } } } }
+    ? (function () {
+      const peg = require('./peg-0.10.0');
+      return peg;
+    })()
     : peg
   );
