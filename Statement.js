@@ -21,7 +21,7 @@ let config = {
   decls: [],
   dependOrder: {},
   depend: {},
-  magic: '"',
+  magic: '_',
   preprocess: function (str) {
     return str.trim();
   }
@@ -840,6 +840,7 @@ let config = {
     let wsp = ' \\t\\n\\r';
     let dash = `"'"`;
     let backdash = "'`'";
+    let except = '~\\-\\+\\*\\/<>=!#\'"%&;:,\\[\\]\\(\\)\\|\\.\\\\\\^\\?`{}@\\$';
     return `
 
 // Simple Arithmetics Grammar
@@ -1077,16 +1078,16 @@ SysIndex
 {
   return parseInt(unsinged,10);
 }
-
-Sequence 
-= seq:[A-Z]+ { 
+Sequence
+= seq:([^0-9a-z${wsp}${except}][^${wsp}${except}]*)  {
+  let seqname = seq[0]+seq[1].join('');
   if (config.state.mode) {
     // TODO: use 0 if not specified by '?'
-    return config.iteraitas[seq.join('')][0];
+    return config.iteraitas[seqname][0];
   } else {
     return [{
       type: 'sequence',
-      name: seq.join(''),
+      name: seqname,
     }];
   }
 }
