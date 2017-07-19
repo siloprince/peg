@@ -37,12 +37,13 @@
     draw();
 
     let sidebar = document.querySelector(`textarea#${config.sidebar.src_id}`);
-    sidebar.addEventListener('change', function () {
+    sidebar.addEventListener('input', function () {
         rentaku.clear();
         rentaku.parser.statement.parse(rentaku._.preprocess(sidebar.value));
         draw();
     });
-    function generate() {
+    function generate(ev) {
+        console.dir(ev);
         let table = document.querySelector(config.table.id);
         let theadTr = table.querySelector('thead tr');
         let thList = theadTr.querySelectorAll('th');
@@ -54,19 +55,22 @@
         let tbodyTr = table.querySelectorAll('tbody tr');
         let formulas = [];
         for (let ri = 0; ri < 2 + rentaku._.constval; ri++) {
-            if (ri===1) {
+            if (ri === 1) {
                 continue;
             }
             let tdList = tbodyTr[ri].querySelectorAll('td');
             for (let ti = 0; ti < tdList.length; ti++) {
                 let val = tdList[ti].textContent.trim();
-                if (ri===0) {
+                if (ri === 0) {
+                    if (val.length === 0) {
+                        val = '0';
+                    }
                     formulas.push(val);
                 } else {
-                    if (val.length===0) {
+                    if (val.length === 0) {
                         continue;
                     }
-                    formulas[ti]+=`[${val}]`;
+                    formulas[ti] += `[${val}]`;
                 }
             }
         }
@@ -153,13 +157,15 @@
                 for (let ii = 0; ii < instances.length; ii++) {
                     let instance = instances[ii];
                     let cell = '';
-                    let ck = instance.inits.length - cj -1;
+                    let ck = instance.inits.length - cj - 1;
                     if (instance.inits && cj < instance.inits.length && typeof (instance.inits[ck]) !== 'undefined') {
                         cell = instance.inits[ck];
                     }
                     let hi = hint(cell);
                     let initsTdStyle = `style="font-size:9pt;background-color:#ccffcc;height:16pt;text-align: ${hi.align};"`;
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${initsTdStyle} ${ed}>${hi.sign}${cell}</td>`);
+                    let td = tbodyTr.querySelector('td:last-child');
+                    td.addEventListener('input', generate);
                 }
             }
         }
@@ -183,11 +189,11 @@
                 return ret;
             }
             let valstr = val.toString();
-            if (valstr.indexOf('-') !== 0) {
-                ret.sign = '&nbsp;';
-            }
             if (valstr.indexOf('.') !== -1) {
                 ret.align = 'left';
+                if (valstr.indexOf('-') !== 0) {
+                    ret.sign = '&nbsp;';
+                }
             }
             return ret;
         }
