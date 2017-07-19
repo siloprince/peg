@@ -37,13 +37,59 @@
     draw();
 
     let sidebar = document.querySelector(`textarea#${config.sidebar.src_id}`);
-    sidebar.addEventListener('change', function () {     
-        let srcStr = sidebar.value;
+    sidebar.addEventListener('change', function () {
         rentaku.clear();
-        rentaku.parser.statement.parse(rentaku._.preprocess(srcStr));
+        rentaku.parser.statement.parse(rentaku._.preprocess(sidebar.value));
         draw();
     });
+    function generate() {
+        let table = document.querySelector(config.table.id);
+        let theadTr = table.querySelector('thead tr');
+        let thList = theadTr.querySelectorAll('th');
+        let decls = [];
+        for (let ti = 0; ti < thList.length; ti++) {
+            let val = thList[ti].textContent.trim();
+            decls.push(val);
+        }
+        let tbodyTr = table.querySelectorAll('tbody tr');
+        let formulas = [];
+        for (let ri = 0; ri < 2 + rentaku._.constval; ri++) {
+            if (ri===1) {
+                continue;
+            }
+            let tdList = tbodyTr[ri].querySelectorAll('td');
+            for (let ti = 0; ti < tdList.length; ti++) {
+                let val = tdList[ti].textContent.trim();
+                if (ri===0) {
+                    formulas.push(val);
+                } else {
+                    if (val.length===0) {
+                        continue;
+                    }
+                    formulas[ti]+=`[${val}]`;
+                }
+            }
+        }
 
+        let srcList = [];
+        let declHash = {};
+        for (let di = 0; di < decls.length; di++) {
+            let decl = decls[di];
+            if (decl in declHash) {
+                continue;
+            }
+            if (decl.indexOf(rentaku._.magic) === 0) {
+                continue;
+            }
+            srcList.push(decl + ' @ ' + formulas[di]);
+            declHash[decl] = true;
+        }
+        let sidebar = document.querySelector(`textarea#${config.sidebar.src_id}`);
+        sidebar.value = srcList.join('\n');
+        rentaku.clear();
+        rentaku.parser.statement.parse(rentaku._.preprocess(sidebar.value));
+        draw();
+    }
     function draw() {
         // TODO: API
         let iteraitas = rentaku._.iteraitas;
@@ -66,6 +112,8 @@
             let instances = iteraitas[decl];
             for (let ii = 0; ii < instances.length; ii++) {
                 theadTr.insertAdjacentHTML('beforeend', `<th ${theadThStyle} ${ed}>${decl}</th>`);
+                let th = theadTr.querySelector('th:last-child');
+                th.addEventListener('input', generate);
             }
         }
         let formulaTdStyle = 'style="font-size:9pt;background-color:#ffffcc;height:16pt;vertical-align:top;text-align: left;word-wrap:break-word;max-width:100pt;"';
@@ -78,6 +126,8 @@
                 for (let ii = 0; ii < instances.length; ii++) {
                     let cell = instances[ii].formula;
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${formulaTdStyle} ${ed}>${cell}</td>`);
+                    let td = tbodyTr.querySelector('td:last-child');
+                    td.addEventListener('input', generate);
                 }
             }
         }
@@ -103,8 +153,9 @@
                 for (let ii = 0; ii < instances.length; ii++) {
                     let instance = instances[ii];
                     let cell = '';
-                    if (instance.inits && cj < instance.inits.length && typeof (instance.inits[cj]) !== 'undefined') {
-                        cell = instance.inits[cj];
+                    let ck = instance.inits.length - cj -1;
+                    if (instance.inits && cj < instance.inits.length && typeof (instance.inits[ck]) !== 'undefined') {
+                        cell = instance.inits[ck];
                     }
                     let hi = hint(cell);
                     let initsTdStyle = `style="font-size:9pt;background-color:#ccffcc;height:16pt;text-align: ${hi.align};"`;
