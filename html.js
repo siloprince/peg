@@ -23,6 +23,7 @@
         `
         }
     };
+    rentaku.debug = false;
     let currentScript = document.currentScript;
     currentScript.insertAdjacentHTML(
         'afterend',
@@ -53,14 +54,14 @@
         for (let ik in rentaku._.iteraitas) {
             let iters = rentaku._.iteraitas[ik];
             for (let ij = 0; ij < iters.length; ij++) {
-                if (ij>0) {
+                if (ij > 0) {
                     // TODO: recover
                     continue;
                 }
                 let iter = iters[ij];
                 // TODO: switch label to new label
                 let label = iter.label;
-                if (label.indexOf(rentaku._.magic)===0) {
+                if (label.indexOf(rentaku._.magic) === 0) {
                     continue;
                 }
                 let formula = iter.formula;
@@ -88,8 +89,14 @@
         }
         return srcList.join('\n');
     }
+    function capture(ev) {
+        config.last = ev.target.textContent;
+    }
     function rebuild(ev) {
-
+        console.log(config.last + '=>' + ev.target.textContent);
+        if (config.last.trim()===ev.target.textContent.trim()) {
+            return;
+        }
         let table = document.querySelector(config.table.id);
         let theadTr = table.querySelector('thead tr');
         let thList = theadTr.querySelectorAll('th');
@@ -178,6 +185,7 @@
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${formulaTdStyle} ${ed}>${cell}</td>`);
                     let td = tbodyTr.querySelector('td:last-child');
                     td.addEventListener('input', rebuild, false);
+                    td.addEventListener('focus', capture, false);
                 }
             }
         }
@@ -251,6 +259,7 @@
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${initsTdStyle} ${ed}>${hi.sign}${cell}</td>`);
                     let td = tbodyTr.querySelector('td:last-child');
                     td.addEventListener('input', rebuild, false);
+                    td.addEventListener('focus', capture, false);
                 }
             }
         }
@@ -270,7 +279,7 @@
             }
         }
         function hint(val) {
-            let ret = { sign: '', align: 'right' , default: false};
+            let ret = { sign: '', align: 'right', default: false };
             if (val === null || typeof val === 'undefined') {
                 return ret;
             }
@@ -281,10 +290,10 @@
             }
             return ret;
         }
-        function padding(val,hint) {
-            if (hint.default===false) {
+        function padding(val, hint) {
+            if (hint.default === false) {
                 return hint;
-            }            
+            }
             if (val === null || typeof val === 'undefined') {
                 return hint;
             }

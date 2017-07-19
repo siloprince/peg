@@ -2,6 +2,7 @@
 var global = Function('return this')();
 global.rentaku = {
   '_': null,
+  debug: true,
   parser: {
     statement: null,
     formula: null
@@ -470,10 +471,12 @@ try {
         }
         function processStatements() {
           run();
+          if (rentaku.debug) {
           for (let ik in rentaku._.iteraitas) {
             for (let ii = 0; ii < rentaku._.iteraitas[ik].length; ii++) {
               console.log(ik + '[' + ii + ']:' + rentaku._.iteraitas[ik][ii].values);
             }
+          }
           }
           return;
         }
