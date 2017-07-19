@@ -13,11 +13,12 @@
             rows: '40',
             cols: '46',
             style: `
-    position:absolute;
-    top:0;
+    position:fixed;
+    top:0px;
     right:0px;
     width:300px;
     height:100%;
+    z-index: 1;
         `
         }
     };
@@ -27,7 +28,7 @@
         `
         <h3>${config.page_label}</h3>
         <div id="${config.sidebar.id}" style="${config.sidebar.style}">
-            <textarea id="${config.sidebar.src_id}" rows="${config.sidebar.rows}" cols="${config.sidebar.cols}" style="font-size:9pt;">${rentaku.sample}</textarea>
+            <textarea id="${config.sidebar.src_id}" style="font-size:9pt;height:100%;width:300px;">${rentaku.sample}</textarea>
         </div>
         <table id="${config.table.id}"><thead><tr></tr></thead><tbody></tbody></table>`
     );
