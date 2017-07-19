@@ -43,7 +43,7 @@
         draw();
     });
     function generate(ev) {
-        console.dir(ev);
+
         let table = document.querySelector(config.table.id);
         let theadTr = table.querySelector('thead tr');
         let thList = theadTr.querySelectorAll('th');
@@ -109,7 +109,7 @@
         theadTr.innerHTML = '';
         let tbody = table.querySelector('tbody');
         tbody.innerHTML = '';
-        let ed = ' contenteditable="true" ';
+        let ed = ' contenteditable="true" tabindex="0"';
         let theadThStyle = 'style="background-color:#444499;color:#ffffff;font-size:9pt;"';
         for (let di = 0; di < decls.length; di++) {
             let decl = decls[di];
@@ -117,7 +117,7 @@
             for (let ii = 0; ii < instances.length; ii++) {
                 theadTr.insertAdjacentHTML('beforeend', `<th ${theadThStyle} ${ed}>${decl}</th>`);
                 let th = theadTr.querySelector('th:last-child');
-                th.addEventListener('input', generate);
+                th.addEventListener('input', generate,false);
             }
         }
         let formulaTdStyle = 'style="font-size:9pt;background-color:#ffffcc;height:16pt;vertical-align:top;text-align: left;word-wrap:break-word;max-width:100pt;"';
@@ -131,7 +131,7 @@
                     let cell = instances[ii].formula;
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${formulaTdStyle} ${ed}>${cell}</td>`);
                     let td = tbodyTr.querySelector('td:last-child');
-                    td.addEventListener('input', generate);
+                    td.addEventListener('input', generate,false);
                 }
             }
         }
@@ -165,7 +165,7 @@
                     let initsTdStyle = `style="font-size:9pt;background-color:#ccffcc;height:16pt;text-align: ${hi.align};"`;
                     tbodyTr.insertAdjacentHTML('beforeend', `<td ${initsTdStyle} ${ed}>${hi.sign}${cell}</td>`);
                     let td = tbodyTr.querySelector('td:last-child');
-                    td.addEventListener('input', generate);
+                    td.addEventListener('input', generate,false);
                 }
             }
         }
