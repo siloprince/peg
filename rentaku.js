@@ -280,6 +280,7 @@ global.rentaku = {
           if (rentaku._.state.mode) {
             return;
           }
+          let lastFormStr = JSON.stringify(form);
           let _formulaStrArray = [form.pop().text];
           
           let _formulaArray = [form];
@@ -295,6 +296,9 @@ global.rentaku = {
             if (more && more.length > 0) {
               for (let mi = 0; mi < more.length; mi++) {
                 let formula = more[mi][0];
+                if (formula === null) {
+                  formula = JSON.parse(lastFormStr);
+                }
                 _formulaStrArray.push(formula.pop().text);
                 _formulaArray.push(formula);
                 let morecond = more[mi][3];
@@ -810,7 +814,7 @@ TODO:
 
 */
 Statement
-= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {  
   processStatement(seq,form,formcond,argvs);
 }
