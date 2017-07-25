@@ -19,6 +19,7 @@ global.rentaku = {
           self: null,
           now: 0,
           here: 0,
+          what: 0,
           serial: 0,
           decl_serial: {},
           mode: false, // TODO: add more modes : preprocess interpretor
@@ -52,6 +53,9 @@ global.rentaku = {
         function here() {
           return rentaku._.state.here;
         }
+        function what() {
+          return rentaku._.state.what;
+        }
         function getRidx(_ridx) {
           return (_ridx + rentaku._.max * 10) % rentaku._.max;
         }
@@ -68,6 +72,7 @@ global.rentaku = {
           var ret = rentaku._.iteraitas[rentaku._.state.self][here()];
           return ret;
         }
+        // called by run
         function one(value) {
           if (!value) {
             return null;
@@ -79,6 +84,7 @@ global.rentaku = {
           }
           return null;
         }
+        // called by parser
         function val(iter, _cidx, ridx) {
           var iters = rentaku._.iteraitas[iter.label];
           var cidx = getCidx(iters, _cidx);
@@ -86,11 +92,12 @@ global.rentaku = {
             return one(iters[cidx].values[now()]);
           }
           if (ridx >= 0) {
-            return one(iters[cidx].values[getRidx(ridx)]);
+            return iters[cidx].values[getRidx(ridx)][what()];
           } else {
             return iters[cidx].inits[getRidx(iters[cidx].inits.length + ridx)];
           }
         }
+        // called by parser
         function lastval(iter) {
           if (iter.values.length === 0) {
             return null;
@@ -98,12 +105,13 @@ global.rentaku = {
             let here = 0;
             let idx = iter.values.indexOf(null);
             if (idx === -1) {
-              return one(iter.values[iter.values.length - 1]);
+              return iter.values[iter.values.length - 1][what()];
             } else {
-              return one(iter.values[idx - 1]);
+              return iter.values[idx - 1][what()];
             }
           }
         }
+        // called by run
         function vallen(iter) {
           if (iter.values.length === 0) {
             return 0;
@@ -122,6 +130,7 @@ global.rentaku = {
             }
           }
         }
+        // called by run
         function inilen(iter) {
           if (iter.inits.length === 0) {
             return 0;
@@ -134,6 +143,7 @@ global.rentaku = {
             }
           }
         }
+        // called by parser
         function lastini(iter) {
           if (iter.inits.length === 0) {
             return 0;
@@ -146,6 +156,7 @@ global.rentaku = {
             }
           }
         }
+        // called by parser
         function ini(iter, _cidx, ridx) {
           var iters = rentaku._.iteraitas[iter.label];
           var cidx = getCidx(iters, _cidx);
@@ -646,6 +657,7 @@ global.rentaku = {
           rentaku._.state.mode = true;
           let newval = [];
           for (let fi = 0; fi<iter.formula.length; fi++) {
+            rentaku._.state.what = fi;
             let val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula[fi]), { startRule: 'Formula' });
             newval.push(val);
             if (iter.condition && iter.condition.length > 0) {
@@ -659,6 +671,7 @@ global.rentaku = {
               }
             }
           }
+          rentaku._.state.what = 0;
           iter.values.push(newval);
           rentaku._.state.mode = false;
         }
@@ -814,6 +827,10 @@ TODO:
 */
 Statement
 = _ seq:Sequence _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+{  
+  processStatement(seq,form,formcond,argvs);
+}
+/ _ seq:Sequence argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )* _ ':=' form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? 
 {  
   processStatement(seq,form,formcond,argvs);
 }
