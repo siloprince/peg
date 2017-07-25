@@ -153,6 +153,7 @@ global.rentaku = {
         }
         function processAndOr(head, tail) {
           return tail.reduce(function (result, element) {
+            if (element[1] === ',') { return result && element[3]; }
             if (element[1] === 'and') { return result && element[3]; }
             if (element[1] === 'or') { return result || element[3]; }
           }, head);
@@ -816,7 +817,7 @@ Statement
 }
 
 Condition
-= head:FuncCondTerm tail:( _ ('and' / 'or') _ FuncCondTerm)*
+= head:FuncCondTerm tail:( _ ('and' / 'or' / ',') _ FuncCondTerm)*
 {
   if (rentaku._.state.mode) {
     return processAndOr(head, tail);
