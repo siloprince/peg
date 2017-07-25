@@ -201,9 +201,11 @@ global.rentaku = {
         }
         function processFunc(head, tail) {
           return tail.reduce(function (result, element) {
-            let func = element[1].join('');
+            let func = element[1];
             // TODO: dynamic func operator
-            if (func === 'mod') { return result % element[3]; }
+            if (func === '%' || func === 'mod') { 
+              return result % element[3];
+            }
           }, head);
         }
         function processFuncEx(func, aidx, _args) {
@@ -811,7 +813,7 @@ TODO:
 
 */
 Statement
-= _ seq:Sequence _ '@' form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
+= _ seq:Sequence _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
 {  
   processStatement(seq,form,formcond,argvs);
 }
@@ -871,25 +873,25 @@ FuncCondTermSub
     return processTail(head, tail);
   }
 }
-/ _ op:[a-z]+ args:Term 
+/ _ op:$('%' / [a-z]) args:Term 
 {
   if (rentaku._.state.mode) {
-    return processFuncCondEx(op.join(''), null, args);
+    return processFuncCondEx(op, null, args);
   } else {
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '[' _ Term _ ']')+ 
+/ _ op:$('%' / [a-z]) tail:( _ '[' _ Term _ ']')+ 
 {
   if (rentaku._.state.mode) {
-    return processFuncCondEx(op.join(''),2, tail);
+    return processFuncCondEx(op, 2, tail);
   } else { 
     return processTail(null, tail);
   }
 }
 
 FuncTerm
-= head:Term tail:( _ [a-z]+ _ Term)*
+= head:Term tail:( _ op:$('%' / [a-z]) _ Term)*
 {
   if (rentaku._.state.mode) {
     return processFunc(head, tail);
@@ -897,18 +899,18 @@ FuncTerm
     return processTail(head, tail);
   }
 }
-/ _ op:[a-z]+ args:Term 
+/ _ op:$('%' / [a-z]) args:Term 
 {
   if (rentaku._.state.mode) {
-    return processFuncEx(op.join(''), null, args);
+    return processFuncEx(op, null, args);
   } else { 
     return args; 
   }
 }
-/ _ op:[a-z]+ tail:( _ '{' _ Term _ '}')+
+/ _ op:$('%' / [a-z]) tail:( _ '{' _ Term _ '}')+
 {
   if (rentaku._.state.mode) {
-    return processFuncEx(op.join(''), 2, args);
+    return processFuncEx(op, 2, args);
   } else {
     return processTail(null, tail);
   }
