@@ -281,6 +281,7 @@ global.rentaku = {
             return;
           }
           let _formulaStrArray = [form.pop().text];
+          
           let _formulaArray = [form];
           let _condStrArray = [];
           let _condArray = [];
@@ -590,7 +591,6 @@ global.rentaku = {
                         }
                         sideArray.push(tmp);
                       }
-                      console.log(sideArray);
                     }
                     if (constargv) {
                       minSides = 1;
@@ -644,15 +644,12 @@ global.rentaku = {
             if (typeof iter.formula[fi] !== 'undefined') {
               val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula[fi]), { startRule: 'Formula' });
             }
-            rentaku._.state.mode = false;
             newval.push(val);
             if (iter.condition && iter.condition.length > 0) {
-              rentaku._.state.mode = true;
               let cond = true;
               if (typeof iter.condition[fi] !== 'undefined' && iter.condition[fi].length > 0) {
                  cond = rentaku.parser.formula.parse(rentaku._.preprocess(iter.condition[fi]), { startRule: 'Condition' });
               }
-              rentaku._.state.mode = false;
               if (!cond) {
                 newval.pop();
                 newval.push(null);
@@ -660,6 +657,7 @@ global.rentaku = {
             }
           }
           iter.values.push(newval);
+          rentaku._.state.mode = false;
         }
         function setStart(decls, _depend, starts) {
           let depend = {};
