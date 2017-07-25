@@ -642,12 +642,8 @@ global.rentaku = {
         function appendRow(iter) {
           rentaku._.state.mode = true;
           let newval = [];
-          // TODO: 0
-          let val = 0;
           for (let fi = 0; fi<iter.formula.length; fi++) {
-            if (typeof iter.formula[fi] !== 'undefined') {
-              val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula[fi]), { startRule: 'Formula' });
-            }
+            let val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula[fi]), { startRule: 'Formula' });
             newval.push(val);
             if (iter.condition && iter.condition.length > 0) {
               let cond = true;
