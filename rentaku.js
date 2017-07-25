@@ -8,7 +8,7 @@ global.rentaku = {
     formula: null
   },
 };
-try {
+//try {
   (function (console, peg, srcStr) {
     rentaku.sample = srcStr;
     rentaku.clear = clear;
@@ -68,14 +68,25 @@ try {
           var ret = rentaku._.iteraitas[rentaku._.state.self][here()];
           return ret;
         }
+        function one(value) {
+          if (!value) {
+            return null;
+          }
+          for (let vi = 0; vi < value.length; vi++) {
+            if (typeof value[vi] !== 'undefined' && value[vi] !== null) {
+              return value[vi];
+            }
+          }
+          return null;
+        }
         function val(iter, _cidx, ridx) {
           var iters = rentaku._.iteraitas[iter.label];
           var cidx = getCidx(iters, _cidx);
           if (typeof (ridx) === 'undefined') {
-            return iters[cidx].values[now()];
+            return one(iters[cidx].values[now()]);
           }
           if (ridx >= 0) {
-            return iters[cidx].values[getRidx(ridx)];
+            return one(iters[cidx].values[getRidx(ridx)]);
           } else {
             return iters[cidx].inits[getRidx(iters[cidx].inits.length + ridx)];
           }
@@ -87,9 +98,9 @@ try {
             let here = 0;
             let idx = iter.values.indexOf(null);
             if (idx === -1) {
-              return iter.values[iter.values.length - 1];
+              return one(iter.values[iter.values.length - 1]);
             } else {
-              return iter.values[idx - 1];
+              return one(iter.values[idx - 1]);
             }
           }
         }
@@ -98,9 +109,14 @@ try {
             return 0;
           } else {
             let here = 0;
-            let idx = iter.values.indexOf(null);
+            // TODO: ones
+            let ones = [];
+            for (let vi=0;vi<iter.values.length;vi++) {
+              ones.push(one(iter.values[vi]));
+            }
+            let idx = ones.indexOf(null);
             if (idx === -1) {
-              return iter.values.length;
+              return ones.length;
             } else {
               return idx;
             }
@@ -316,13 +332,11 @@ try {
             rentaku._.state.decl_serial[declLabel] = -1;
             rentaku._.iteraitas[declLabel] = [];
           }
-          for (let di = 0; di < _formulaArray.length; di++) {
-            processStatementSub(declLabel,
-              _formulaArray[di], _condArray[di], _argvsArray, _argvsCondArray,
-              _formulaStrArray[di], _condStrArray[di], _argvsStrArray, _argvsCondStrArray);
-          }
+          processStatementSub(declLabel,
+            _formulaArray, _condArray, _argvsArray, _argvsCondArray,
+            _formulaStrArray, _condStrArray, _argvsStrArray, _argvsCondStrArray);
         }
-        function processStatementSub(declLabel, formulaDep, condDep, argvsDepArray, argvsCondDepArray, formulaStr, condStr, argvsStrArray, argvsCondStrArray) {
+        function processStatementSub(declLabel, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray, formulaStrArray, condStrArray, argvsStrArray, argvsCondStrArray) {
           rentaku._.state.decl_serial[declLabel]++;
           let decl = declLabel + rentaku._.magic + rentaku._.state.decl_serial[declLabel];
           rentaku._.decls.push(decl);
@@ -331,18 +345,18 @@ try {
             name: decl,
             inits: [],
             values: [],
-            formula: formulaStr,
-            condition: condStr,
+            formula: formulaStrArray,
+            condition: condStrArray,
             argvs: argvsStrArray,
             argvsCondition: argvsCondStrArray,
-            formulaDep: formulaDep,
-            conditionDep: condDep,
+            formulaDep: formulaDepArray,
+            conditionDep: condDepArray,
             argvsDep: argvsDepArray,
             argvsConditionDep: argvsCondDepArray,
             sideSequences: [],
           };
           rentaku._.iteraitas[declLabel].unshift(iter);
-          calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
+          calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
           for (let ai = 0; ai < argvsStrArray.length; ai++) {
             let constargv = true;
             for (let aj = 0; aj < argvsDepArray[ai].length; aj++) {
@@ -380,24 +394,32 @@ try {
               name: _decl,
               inits: [],
               values: [],
-              formula: [argvsStrArray[ai]][0],
-              condition: [argvsCondStrArray[ai]][0],
+              formula: [argvsStrArray[ai]],
+              condition: [argvsCondStrArray[ai]],
               argvs: [],
-              formulaDep: [argvsDepArray[ai]][0],
-              conditionDep: [argvsCondDepArray[ai]][0],
+              formulaDep: [argvsDepArray[ai]],
+              conditionDep: [argvsCondDepArray[ai]],
               argvsDep: null,
               sideSequences: [],
             }];
             calcDepend(_decl, argvsDepArray[ai], argvsCondDepArray[ai], null, null);
           }
           // recalculate
-          calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray);
+          calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray);
           return;
-          function calcDepend(decl, formulaDep, condDep, argvsDepArray, argvsCondDepArray) {
+          function calcDepend(decl, formulaDepArray, condDepArray, argvsDepArray, argvsCondDepArray) {
             let depend = [];
-            depend = depend.concat(formulaDep);
-            if (condDep) {
-              depend = depend.concat(condDep);
+            for (let fi = 0; fi < formulaDepArray.length; fi++) {
+              if (formulaDepArray[fi]) {
+                depend = depend.concat(formulaDepArray[fi]);
+              }
+            }
+            if (condDepArray) {
+              for (let ci = 0; ci < condDepArray.length; ci++) {
+                if (condDepArray[ci]) {
+                  depend = depend.concat(condDepArray[ci]);
+                }
+              }
             }
             if (argvsDepArray) {
               for (let ai = 0; ai < argvsDepArray.length; ai++) {
@@ -472,11 +494,11 @@ try {
         function processStatements() {
           run();
           if (rentaku.debug) {
-          for (let ik in rentaku._.iteraitas) {
-            for (let ii = 0; ii < rentaku._.iteraitas[ik].length; ii++) {
-              console.log(ik + '[' + ii + ']:' + rentaku._.iteraitas[ik][ii].values);
+            for (let ik in rentaku._.iteraitas) {
+              for (let ii = 0; ii < rentaku._.iteraitas[ik].length; ii++) {
+                console.log(ik + '[' + ii + ']:' + JSON.stringify(rentaku._.iteraitas[ik][ii].values));
+              }
             }
-          }
           }
           return;
         }
@@ -514,7 +536,6 @@ try {
           }
           rentaku._.limit.count = 0;
           let max = 0;
-
           for (let sk in rentaku._.starts) {
             max = Math.max(max, rentaku._.starts[sk]);
           }
@@ -559,7 +580,8 @@ try {
                         let _iter = rentaku._.iteraitas[_decl][0];
                         let tmp = [];
                         for (let ii = 0; ii < vallen(_iter); ii++) {
-                          tmp.push(_iter.values[ii]);
+                          // TODO: one?
+                          tmp.push(one(_iter.values[ii]));
                         }
                         if (minSides) {
                           minSides = Math.min(minSides, tmp.length);
@@ -568,6 +590,7 @@ try {
                         }
                         sideArray.push(tmp);
                       }
+                      console.log(sideArray);
                     }
                     if (constargv) {
                       minSides = 1;
@@ -603,6 +626,7 @@ try {
               let iters = rentaku._.iteraitas[iter.label];
               new_iter = JSON.parse(JSON.stringify(iter));
               iters.splice(loc, 0, new_iter);
+              //iters.push(new_iter);
             }
           }
           new_iter.inits.length = 0;
@@ -613,18 +637,29 @@ try {
         }
         function appendRow(iter) {
           rentaku._.state.mode = true;
-          let val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula), { startRule: 'Formula' });
-          rentaku._.state.mode = false;
-          iter.values.push(val);
-          if (iter.condition && iter.condition.length > 0) {
-            rentaku._.state.mode = true;
-            let cond = rentaku.parser.formula.parse(rentaku._.preprocess(iter.condition), { startRule: 'Condition' });
+          let newval = [];
+          // TODO: 0
+          let val = 0;
+          for (let fi = 0; fi<iter.formula.length; fi++) {
+            if (typeof iter.formula[fi] !== 'undefined') {
+              val = rentaku.parser.formula.parse(rentaku._.preprocess(iter.formula[fi]), { startRule: 'Formula' });
+            }
             rentaku._.state.mode = false;
-            if (!cond) {
-              iter.values.pop();
-              iter.values.push(null);
+            newval.push(val);
+            if (iter.condition && iter.condition.length > 0) {
+              rentaku._.state.mode = true;
+              let cond = true;
+              if (typeof iter.condition[fi] !== 'undefined' && iter.condition[fi].length > 0) {
+                 cond = rentaku.parser.formula.parse(rentaku._.preprocess(iter.condition[fi]), { startRule: 'Condition' });
+              }
+              rentaku._.state.mode = false;
+              if (!cond) {
+                newval.pop();
+                newval.push(null);
+              }
             }
           }
+          iter.values.push(newval);
         }
         function setStart(decls, _depend, starts) {
           let depend = {};
@@ -1082,7 +1117,7 @@ or
 `;
       })()
     );
-
+/*
 } catch (ex) {
   console.error(ex);
-}
+}*/
