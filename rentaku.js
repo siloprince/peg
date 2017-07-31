@@ -787,7 +787,6 @@ global.rentaku = {
     rentaku.parser.formula = peg.generate(statementStr, { allowedStartRules: ['Formula', 'Condition'] });
     clear();
     rentaku.parser.statement.parse(rentaku._.preprocess(srcStr));
-
     function getStatementStr(funcStr) {
 
       let signed = '\\+\\-';
@@ -830,10 +829,11 @@ Statement
 {  
   processStatement(seq,form,formcond,argvs);
 }
+/*
 / _ seq:Sequence argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )* _ ':=' form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? 
 {  
   processStatement(seq,form,formcond,argvs);
-}
+}*/
 
 Condition
 = head:FuncCondTerm tail:( _ ('and' / 'or' / ',') _ FuncCondTerm)*
