@@ -844,7 +844,7 @@ TODO:
 * multiple duplicate names
 */
 Statements
-= (_ Statement)+ 
+= (_ Statement)+ _
 {
   if (rentaku._.state.mode) {
     return;
