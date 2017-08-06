@@ -328,29 +328,31 @@ global.rentaku = {
         let _formulaArray = [form];
         let _condStrArray = [];
         let _condArray = [];
+        // formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* )?
+        // formcond:( _ '|' _ Condition? ( _ Formula? _ '|' _ Condition? )* )?
         if (formcond) {
-          let cond1 = formcond[2];
+          let cond1 = formcond[3];
           if (cond1 && cond1.length > 0) {
             _condStrArray.push(cond1.pop().text);
             _condArray.push(cond1);
           }
-          let more = formcond[3];
+          let more = formcond[4];
           if (more && more.length > 0) {
             for (let mi = 0; mi < more.length; mi++) {
-              let formula = more[mi][0];
+              let formula = more[mi][1];
               if (formula === null) {
                 formula = JSON.parse(lastFormStr);
               }
               _formulaStrArray.push(formula.pop().text);
               _formulaArray.push(formula);
-              let morecond = more[mi][3];
+              let morecond = more[mi][5];
               if (morecond) {
                 _condStrArray.push(morecond.pop().text);
                 _condArray.push(morecond);
               }
             }
           }
-          let lastformula = formcond[4];
+          let lastformula = formcond[5];
           if (lastformula) {
             _formulaStrArray.push(lastformula.pop().text);
             _formulaArray.push(lastformula);
@@ -861,7 +863,7 @@ TODO:
 
 */
 Statement
-= seq:Sequence _  argvs:Argvs* _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* )?
+= seq:Sequence _  argvs:Argvs* _ ('@' / ':=') _ form:Formula formcond:( _ '|' _ Condition? ( _ Formula? _ '|' _ Condition? )* )?
 {  
   processStatement(seq,form,formcond,argvs);
 }
@@ -909,7 +911,7 @@ Formula
 
 
 FuncCondTerm
-= _ '(' cond:Condition _ ')'
+= '(' _ cond:Condition _ ')'
 {
   return cond;
 }
@@ -972,7 +974,7 @@ FuncTerm
 }
 
 Term
-= _ head:UnsignedNumber tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) / [${sp}]* [${sp}]* [${sp}]* Factor)* 
+= head:UnsignedNumber tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) / [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
   if (rentaku._.state.mode) {
     return processMulDiv(head, tail);
@@ -980,7 +982,7 @@ Term
     return processTail(head, tail);
   }
 }
-/ _ head:Factor tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) /  [${sp}]* [${sp}]* [${sp}]* Factor)* 
+/ head:Factor tail:( _ ('*' / '/') _ (UnsignedNumber / Factor) /  [${sp}]* [${sp}]* [${sp}]* Factor)* 
 {
   if (rentaku._.state.mode) {
     return processMulDiv(head, tail);
