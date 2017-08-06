@@ -243,7 +243,7 @@ global.rentaku = {
       function processDash(seq, tail) {
         let result = tail.reduce(function (result, element) {
           var op = element[0];
-          var arg = element[1][0];
+          var arg = element[2][0];
           if (typeof (arg) === 'undefined') {
             arg = 1;
           }
@@ -1001,7 +1001,7 @@ Factor
   }
 
 SysOperatedDash
-= seq:Sequence tail:( [${dash}${backdash}] SysIndex*)+ 
+= seq:Sequence tail:( [${dash}${backdash}] [${sp}]* SysIndex*)+ 
 {
   if (rentaku._.state.mode) {
     return processDash (seq,tail);
@@ -1012,7 +1012,7 @@ SysOperatedDash
     }];
   }
 }
-/ tail:([${dash}${backdash}]  SysIndex*)+ 
+/ tail:([${dash}${backdash}] [${sp}]* SysIndex*)+ 
 {
   if (rentaku._.state.mode) {
     return processDash (self(),tail);
@@ -1033,7 +1033,7 @@ SysOperatedDoller
     }];
   }
 }
-/ _ op:'$' idx:SysIndex*
+/ op:'$' idx:SysIndex*
 {
   if (rentaku._.state.mode) {
     return processHashDoller (self(), idx, op);
@@ -1054,7 +1054,7 @@ SysOperatedHash
     }];
   }
 }
-/ _ op:'#' idx:SysIndex* 
+/ op:'#' idx:SysIndex* 
 {
   if (rentaku._.state.mode) {
     return processHashDoller (self(), idx, op);
@@ -1064,14 +1064,15 @@ SysOperatedHash
 }
 
 SysIndex
-= _ '{' signed:SignedInt _ '}'
+= '{' _ signed:SignedInt _ '}'
 {
   return parseInt(signed,10);
 }
-/ _ unsinged:_UnsignedInt
+/ unsinged:_UnsignedInt
 {
   return parseInt(unsinged,10);
 }
+
 Sequence
 = seq:([^0-9a-z${wsp}${except}][^${wsp}${except}]*)  {
   let seqname = seq[0]+seq[1].join('');
@@ -1101,7 +1102,7 @@ _UnsignedFloat
 / '.' [0-9]+
 
 SignedInt
-= _ [${signed}] _UnsignedInt
+= [${signed}] _UnsignedInt
 / _UnsignedInt
 
 _UnsignedInt
