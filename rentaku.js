@@ -844,7 +844,7 @@ TODO:
 * multiple duplicate names
 */
 Statements
-= (Statement)+ 
+= (_ Statement)+ 
 {
   if (rentaku._.state.mode) {
     return;
@@ -861,7 +861,7 @@ TODO:
 
 */
 Statement
-= _ seq:Sequence _  argvs:Argvs* _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* )?
+= seq:Sequence _  argvs:Argvs* _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* )?
 {  
   processStatement(seq,form,formcond,argvs);
 }
