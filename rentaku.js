@@ -854,24 +854,14 @@ TODO:
 * multiple Conditions
 * Conditions without expr
 * function and operator definition with {}
- A ( _ '|' B?  ( C ( _ '|' D?) )* E? )?
+ A ( _ '|' B?  ( C ( _ '|' D?) )* )?
 
 */
 Statement
-= _ seq:Sequence _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:Argvs*
+= _ seq:Sequence _  argvs:Argvs* _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* )?
 {  
   processStatement(seq,form,formcond,argvs);
 }
-/*
-Statement
-= _ seq:Sequence _ ('@' / ':=') form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )*
-{  
-  processStatement(seq,form,formcond,argvs);
-}
-/ _ seq:Sequence argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )* _ ':=' form:Formula formcond:( _ '|' Condition? ( Formula? _ '|' Condition? )* Formula? )? 
-{  
-  processStatement(seq,form,formcond,argvs);
-}*/
 
 Argvs
 =argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )
@@ -1147,23 +1137,24 @@ _
     })()
     : (function () {
       return `
-自然数 @ '+1 [0]
-パイの素A @ 6 ' +  (2自然数-1)(2自然数-1) '' [1] [3]
-パイの素B @ 6 ' +  (2自然数-1)(2自然数-1) '' [0] [1]
-パイ @ パイの素A/パイの素B	
-辺数 @ 5
-外角 @ 2パイ#/辺数
-コサインの素 @ -' 外角 外角 / (2自然数(2自然数-1)) [1]
-コサイン @ ' + コサインの素 [1]
-サインの素 @ -2 ' 外角 外角 / (2自然数(2自然数+1)) [外角#]
-サイン @ ' + サインの素 [外角#]
-コサインN倍角 @ 2コサイン# ' - '' [コサイン#][0]
-サインN倍角 @ 2コサイン# ' - '' [-サイン#] [0]
-辺長 @ 20
-回転数 @ 1
-点X座標 @ '-辺長 コサインN倍角 | 自然数 <=  辺数 回転数  [0]
-点Y座標 @ ' + 辺長 サインN倍角 | 自然数 <= 辺数 回転数 [0]
-線 @  $3+($1-$3)/($0-$2)*(自然数-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(自然数-$2-1+(($2+1) mod 1))) mod 1) 
+自然数 [0] := '+1
+パイの素A [1][3] := 6 ' +  (2自然数-1)(2自然数-1) '' 
+パイの素B [0][1] := 6 ' +  (2自然数-1)(2自然数-1) '' 
+パイ := パイの素A/パイの素B	
+辺数 := 5
+外角 := 2パイ#/辺数
+コサインの素 [1] := -' 外角 外角 / (2自然数(2自然数-1)) 
+コサイン [1] := ' + コサインの素
+サインの素 [外角#] := -2 ' 外角 外角 / (2自然数(2自然数+1)) 
+サイン  [外角#] := ' + サインの素
+コサインN倍角 [コサイン#][0] := 2コサイン# ' - '' 
+サインN倍角 [-サイン#][0] := 2コサイン# ' - '' 
+辺長 := 20
+回転数 := 1
+点X座標 [0] := '-辺長 コサインN倍角 | 自然数 <=  辺数 回転数  
+点Y座標 [0] := ' + 辺長 サインN倍角 | 自然数 <= 辺数 回転数
+線 
+[点X座標'][点Y座標'][点X座標][点Y座標] :=  $3+($1-$3)/($0-$2)*(自然数-$2-1+(($2+1) mod 1))+1-(($3+($1-$3)/($0-$2)*(自然数-$2-1+(($2+1) mod 1))) mod 1) 
 | (
  (
    ($0-$2)*($0-$2)>=0.0001)
@@ -1176,7 +1167,6 @@ or
   and 
   ((自然数-$2-1+(($2+1) mod 1))*(自然数-$0+($0 mod 1))<=0)
 )
-[点X座標'][点Y座標'][点X座標][点Y座標]
 `;
     })()
   );
