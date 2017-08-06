@@ -294,13 +294,16 @@ global.rentaku = {
         if (rentaku._.state.mode) {
           return;
         }
+        // =argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )
+        // =argvs:( _ '[' _ Formula ( _ '|' _ Condition? ( _ Formula ( _ '|' _ Condition? )? )* )? _ ']' )
+
         let _argvsStr = null;
         let _argvsCondStr = null;
         let _argvs = null;
         let _argvsCond = null;
-        let formIdx = 2;
-        let condIdx = 3;
-        let condPlus = 2;
+        let formIdx = 3;
+        let condIdx = 4;
+        let condPlus = 3;
         _argvsStr = argvs[formIdx].pop().text;
         _argvs = argvs[formIdx];
         if (argvs[condIdx]) {
@@ -864,7 +867,7 @@ Statement
 }
 
 Argvs
-=argvs:( _ '[' Formula ( _ '|' Condition? ( Formula ( _ '|' Condition? )? )* )? _ ']' )
+=argvs:( _ '[' _ Formula ( _ '|' _ Condition? ( _ Formula ( _ '|' _ Condition? )? )* )? _ ']' )
 {
   return processArgvs(argvs);
 }
@@ -925,7 +928,7 @@ FuncCondTermSub
     return processTail(head, tail);
   }
 }
-/ _ op:$('%' / [a-z]+) args:Term 
+/ op:$('%' / [a-z]+) _ args:Term 
 {
   if (rentaku._.state.mode) {
     return processFuncCondEx(op, null, args);
@@ -933,7 +936,7 @@ FuncCondTermSub
     return args; 
   }
 }
-/ _ op:$('%' / [a-z]+) tail:( _ '[' _ Term _ ']')+ 
+/ op:$('%' / [a-z]+) tail:( _ '[' _ Term _ ']')+ 
 {
   if (rentaku._.state.mode) {
     return processFuncCondEx(op, 2, tail);
@@ -951,7 +954,7 @@ FuncTerm
     return processTail(head, tail);
   }
 }
-/ _ op:$('%' / [a-z]+) args:Term 
+/ op:$('%' / [a-z]+) _ args:Term 
 {
   if (rentaku._.state.mode) {
     return processFuncEx(op, null, args);
@@ -959,7 +962,7 @@ FuncTerm
     return args; 
   }
 }
-/ _ op:$('%' / [a-z]+) tail:( _ '{' _ Term _ '}')+
+/ op:$('%' / [a-z]+) tail:( _ '{' _ Term _ '}')+
 {
   if (rentaku._.state.mode) {
     return processFuncEx(op, 2, args);
