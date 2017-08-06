@@ -553,7 +553,7 @@ global.rentaku = {
         if (rentaku.debug) {
           for (let ik in rentaku._.iteraitas) {
             for (let ii = 0; ii < rentaku._.iteraitas[ik].length; ii++) {
-              console.log(ik + '[' + ii + ']:' + JSON.stringify(rentaku._.iteraitas[ik][ii].values));
+              console.log(ik + ' @ ' + ii + ' ~ ' + JSON.stringify(rentaku._.iteraitas[ik][ii].values));
             }
           }
         }
