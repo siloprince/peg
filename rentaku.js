@@ -352,7 +352,7 @@ global.rentaku = {
               }
             }
           }
-          let lastformula = formcond[5];
+          let lastformula = formcond[6];
           if (lastformula) {
             _formulaStrArray.push(lastformula.pop().text);
             _formulaArray.push(lastformula);
@@ -863,13 +863,13 @@ TODO:
 
 */
 Statement
-= seq:Sequence _  argvs:Argvs* _ ('@' / ':=') _ form:Formula formcond:( _ '|' _ Condition? ( _ Formula? _ '|' _ Condition? )* )?
+= seq:Sequence _  argvs:Argvs* _ ('@' / ':=') _ form:Formula formcond:( _ '|' _ Condition? ( _ Formula? _ '|' _ Condition? )*  [${sp}]* Formula? )?
 {  
   processStatement(seq,form,formcond,argvs);
 }
 
 Argvs
-=argvs:( _ '[' _ Formula ( _ '|' _ Condition? ( _ Formula ( _ '|' _ Condition? )? )* )? _ ']' )
+= argvs:( _ '[' _ Formula ( _ '|' _ Condition? ( _ Formula ( _ '|' _ Condition? )? )* )? _ ']' )
 {
   return processArgvs(argvs);
 }
